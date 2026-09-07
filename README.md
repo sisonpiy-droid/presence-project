@@ -53,6 +53,7 @@ endpoints get found by scanners within days.
 npm run check          syntax-check every entry point
 npm run test:function  21 assertions, stubbed provider, no network, no spend
 npm run test:live      real calls to the real provider, reads .env, costs a little
+npm run setup:vercel   push .env vars to Vercel and redeploy
 ```
 
 `test:function` needs no API key. `test:live` reads the gitignored `.env` and
