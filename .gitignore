@@ -1,0 +1,12 @@
+# Build/deploy artefact — a zipped copy of this same folder
+presence-netlify.zip
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+
+node_modules/
+.netlify/
+.DS_Store
+Thumbs.db
