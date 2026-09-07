@@ -120,6 +120,29 @@ for (const [name, call] of Object.entries(both)) {
   });
 }
 
+check("Gemini gets thinking headroom on top of the caller's budget", async () => {
+  resetEnv({ GEMINI_API_KEY: "gk" });
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 700 } });
+  const sent = JSON.parse(lastRequest.opts.body).generationConfig.maxOutputTokens;
+  // Gemini 3.x counts reasoning against maxOutputTokens; without headroom a
+  // 700-token budget left ~55 tokens for the visible reply.
+  assert.equal(sent, 1300, "700 requested + 600 headroom");
+});
+
+check("Anthropic budget is untouched by the Gemini headroom", async () => {
+  resetEnv({ ANTHROPIC_API_KEY: "k" });
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 700 } });
+  assert.equal(JSON.parse(lastRequest.opts.body).max_tokens, 700);
+});
+
+check("default Gemini model is not the retired gemini-2.0-flash", async () => {
+  resetEnv({ GEMINI_API_KEY: "gk" });
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }] } });
+  assert.ok(!lastRequest.url.includes("gemini-2.0-flash"),
+    "gemini-2.0-flash was retired by Google and 404s");
+  assert.match(lastRequest.url, /gemini-3\.6-flash/);
+});
+
 // --- the bug this port was meant to fix -----------------------------------
 check("clientIp reads x-forwarded-for (Vercel), not just the Netlify header", async () => {
   const { clientIp } = await import("../lib/chat-core.js");

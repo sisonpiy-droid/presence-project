@@ -35,10 +35,11 @@ Set these in your host's dashboard, never in the repo. See `.env.example`.
 | `ANTHROPIC_API_KEY` | one provider | from console.anthropic.com |
 | `ANTHROPIC_MODEL` | no | default `claude-sonnet-5` |
 | `GEMINI_API_KEY` | one provider | free tier at aistudio.google.com/apikey |
-| `GEMINI_MODEL` | no | default `gemini-2.0-flash` |
+| `GEMINI_MODEL` | no | default `gemini-3.6-flash` |
 | `LLM_PROVIDER` | only if both keys set | `anthropic` or `gemini` |
 | `PRESENCE_PASSCODE` | **yes, in practice** | testers type it once |
 | `RATE_PER_HOUR` | no | default 120 |
+| `GEMINI_THINKING_HEADROOM` | no | default 600, see below |
 
 Set one provider's key and it picks that provider automatically.
 
@@ -50,10 +51,38 @@ endpoints get found by scanners within days.
 
 ```
 npm run check          syntax-check every entry point
-npm run test:function  exercise both adapters against a stubbed provider
+npm run test:function  21 assertions, stubbed provider, no network, no spend
+npm run test:live      real calls to the real provider, reads .env, costs a little
 ```
 
-The smoke test makes no network calls and needs no API key.
+`test:function` needs no API key. `test:live` reads the gitignored `.env` and
+checks four things end to end: the key resolves, a real message comes back,
+multi-turn history survives, and a wrong passcode is rejected.
+
+## Gemini model IDs go stale
+
+Google retires model IDs. `gemini-2.0-flash` now returns **404**, and a dead
+model ID and a bad key produce almost identical-looking failures. If Gemini
+suddenly stops working, check this first:
+
+```
+npm run test:live
+```
+
+To see what your key can actually reach, list the models rather than guessing
+at a name from documentation.
+
+## Gemini spends tokens thinking
+
+Gemini 3.x reasons before writing, and `maxOutputTokens` caps thinking *and*
+reply together. Measured ~300-400 thinking tokens on a short prompt, so
+passing a 700-token budget straight through left only ~55 for the visible
+reply. `thinkingConfig.thinkingBudget: 0` is not a workaround --
+`gemini-3.6-flash` rejects it with a 400 and `gemini-3.8-flash` ignores it.
+
+So `callGemini` adds `GEMINI_THINKING_HEADROOM` (default 600) on top of the
+caller's budget. Anthropic is unaffected. If replies start arriving truncated,
+raise it.
 
 ## Known gap: the bundle and the source are not connected
 

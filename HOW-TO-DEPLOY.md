@@ -31,7 +31,7 @@ directory, and there is no build step to configure.
 | Name | Value |
 |---|---|
 | `GEMINI_API_KEY` | free key from https://aistudio.google.com/apikey |
-| `GEMINI_MODEL` | a current ID from https://ai.google.dev/gemini-api/docs/models |
+| `GEMINI_MODEL` | `gemini-3.6-flash` (tested working) |
 | `PRESENCE_PASSCODE` | any word, e.g. `crossword` |
 
 Apply each to **Production, Preview and Development**. Set only one
@@ -93,7 +93,7 @@ Pick **one** provider.
 | Name | Value |
 |---|---|
 | `GEMINI_API_KEY` | free key from https://aistudio.google.com/apikey |
-| `GEMINI_MODEL` | a current ID from https://ai.google.dev/gemini-api/docs/models |
+| `GEMINI_MODEL` | `gemini-3.6-flash` (tested working) |
 | `PRESENCE_PASSCODE` | any word, e.g. `crossword` |
 
 Set only one provider's key and it picks that one automatically. If you set both, add `LLM_PROVIDER` as either `anthropic` or `gemini`.
@@ -124,6 +124,7 @@ The app will tell you which problem it is, in plain language:
 
 - **"This site has no API key set"** — step 3 didn't take, or you skipped step 4. Environment variables need a fresh deploy.
 - **Vercel: every chat request 404s** — the deploy predates `api/chat.js`. Redeploy from the latest commit on `main`.
+- **Gemini worked, then stopped** — Google retired the model ID. `gemini-2.0-flash` is already dead. Run `npm run test:live` locally; it tells you the exact reason.
 - **"The server function isn't responding"** — the `netlify` folder didn't upload. This happens if you dragged the *contents* rather than the folder. Try again with the folder itself.
 - **"What is the passcode?"** but you don't know it — whoever deployed it set `PRESENCE_PASSCODE`. It's in your Netlify environment variables.
 

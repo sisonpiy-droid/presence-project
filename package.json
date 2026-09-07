@@ -4,9 +4,12 @@
   "private": true,
   "description": "Presence — a static React app with a serverless function proxying Anthropic or Gemini",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "check": "node --check api/chat.js && node --check lib/chat-core.js && node --check netlify/functions/chat.js",
-    "test:function": "node scripts/smoke-test.mjs"
+    "test:function": "node scripts/smoke-test.mjs",
+    "test:live": "node --env-file=.env scripts/live-test.mjs"
   }
 }
