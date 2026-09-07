@@ -1,4 +1,66 @@
-# Drag this folder onto Netlify
+# Deploying Presence
+
+Two options. **Vercel** deploys from GitHub and redeploys on every push --
+use this if the repo is already connected. **Netlify** drag-and-drop is
+below, unchanged, and still works.
+
+---
+
+# Option A: Vercel (from GitHub)
+
+## 1. Import the repo
+
+At https://vercel.com/new, import `presence-project`. Leave the build
+settings alone -- `vercel.json` already sets the framework and output
+directory, and there is no build step to configure.
+
+## 2. Add your keys
+
+**Settings -> Environment Variables.** Pick one provider.
+
+**Anthropic:**
+
+| Name | Value |
+|---|---|
+| `ANTHROPIC_API_KEY` | your key from https://console.anthropic.com |
+| `ANTHROPIC_MODEL` | a current ID from https://docs.claude.com |
+| `PRESENCE_PASSCODE` | any word, e.g. `crossword` |
+
+**Or Google Gemini** (free tier):
+
+| Name | Value |
+|---|---|
+| `GEMINI_API_KEY` | free key from https://aistudio.google.com/apikey |
+| `GEMINI_MODEL` | a current ID from https://ai.google.dev/gemini-api/docs/models |
+| `PRESENCE_PASSCODE` | any word, e.g. `crossword` |
+
+Apply each to **Production, Preview and Development**. Set only one
+provider's key and it picks that one; if you set both, add `LLM_PROVIDER`
+as `anthropic` or `gemini`.
+
+## 3. Redeploy
+
+Environment variables only apply to builds that start *after* you add them.
+**Deployments -> the latest one -> Redeploy.** Adding a variable does not
+redeploy on its own, and this is the single most common reason the app
+still says it has no API key.
+
+## 4. Check it
+
+Visit `https://<your-site>.vercel.app`. Enter the passcode when asked.
+
+To test the function on its own:
+
+```
+curl -X POST https://<your-site>.vercel.app/api/chat   -H "content-type: application/json"   -H "x-presence-key: YOUR_PASSCODE"   -d '{"ping":true}'
+```
+
+`{"ok":true,"provider":"anthropic"}` means everything is wired up. A ping
+costs nothing -- it never calls the model.
+
+---
+
+# Option B: Drag this folder onto Netlify
 
 No terminal needed. Four steps, about five minutes.
 
@@ -61,6 +123,7 @@ Then send your tester the URL and the passcode. They type it once and it's remem
 The app will tell you which problem it is, in plain language:
 
 - **"This site has no API key set"** — step 3 didn't take, or you skipped step 4. Environment variables need a fresh deploy.
+- **Vercel: every chat request 404s** — the deploy predates `api/chat.js`. Redeploy from the latest commit on `main`.
 - **"The server function isn't responding"** — the `netlify` folder didn't upload. This happens if you dragged the *contents* rather than the folder. Try again with the folder itself.
 - **"What is the passcode?"** but you don't know it — whoever deployed it set `PRESENCE_PASSCODE`. It's in your Netlify environment variables.
 

@@ -1,0 +1,150 @@
+/* Exercises both entry points against a stubbed upstream. No real API key,
+   no network, no spend. Run: npm run test:function */
+
+import assert from "node:assert";
+
+const results = [];
+function check(name, fn) { results.push([name, fn]); }
+
+// --- stub the model provider so nothing leaves the machine ---------------
+let lastRequest = null;
+globalThis.fetch = async (url, opts) => {
+  lastRequest = { url: String(url), opts };
+  // Each provider has its own response shape; returning Anthropic's to both
+  // made the Gemini path look broken when it was only the stub that was.
+  const gemini = String(url).includes("generativelanguage.googleapis.com");
+  return {
+    ok: true,
+    status: 200,
+    json: async () => (gemini
+      ? { candidates: [{ content: { parts: [{ text: "stubbed reply" }] }, finishReason: "STOP" }] }
+      : { content: [{ type: "text", text: "stubbed reply" }] }),
+  };
+};
+
+function resetEnv(env = {}) {
+  for (const k of ["ANTHROPIC_API_KEY","GEMINI_API_KEY","ANTHROPIC_MODEL","GEMINI_MODEL","LLM_PROVIDER","PRESENCE_PASSCODE","RATE_PER_HOUR"]) {
+    delete process.env[k];
+  }
+  Object.assign(process.env, env);
+}
+
+// --- adapters -------------------------------------------------------------
+async function callVercel({ method = "POST", headers = {}, body }) {
+  const { default: handler } = await import("../api/chat.js");
+  const req = { method, headers, body };
+  let status, payload, sentHeaders = {};
+  const res = {
+    status(s) { status = s; return res; },
+    setHeader(k, v) { sentHeaders[k] = v; return res; },
+    end(str) { payload = JSON.parse(str); },
+  };
+  await handler(req, res);
+  return { status, body: payload, headers: sentHeaders };
+}
+
+async function callNetlify({ method = "POST", headers = {}, body }) {
+  const { default: handler } = await import("../netlify/functions/chat.js");
+  const req = new Request("https://example.test/api/chat", {
+    method,
+    headers: { "content-type": "application/json", ...headers },
+    body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
+  });
+  const res = await handler(req);
+  return { status: res.status, body: await res.json() };
+}
+
+const both = { vercel: callVercel, netlify: callNetlify };
+
+// --- tests ----------------------------------------------------------------
+for (const [name, call] of Object.entries(both)) {
+  check(`${name}: GET is rejected`, async () => {
+    resetEnv({ ANTHROPIC_API_KEY: "k" });
+    const r = await call({ method: "GET" });
+    assert.equal(r.status, 405);
+  });
+
+  check(`${name}: no key configured -> 503 no_key`, async () => {
+    resetEnv({});
+    const r = await call({ body: { ping: true } });
+    assert.equal(r.status, 503);
+    assert.equal(r.body.error, "no_key");
+  });
+
+  check(`${name}: wrong passcode -> 401`, async () => {
+    resetEnv({ ANTHROPIC_API_KEY: "k", PRESENCE_PASSCODE: "crossword" });
+    const r = await call({ headers: { "x-presence-key": "nope" }, body: { ping: true } });
+    assert.equal(r.status, 401);
+    assert.equal(r.body.error, "passcode");
+  });
+
+  check(`${name}: correct passcode + ping -> provider, no spend`, async () => {
+    resetEnv({ ANTHROPIC_API_KEY: "k", PRESENCE_PASSCODE: "crossword" });
+    lastRequest = null;
+    const r = await call({ headers: { "x-presence-key": "crossword" }, body: { ping: true } });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.provider, "anthropic");
+    assert.equal(lastRequest, null, "ping must not call the provider");
+  });
+
+  check(`${name}: empty messages -> 400`, async () => {
+    resetEnv({ ANTHROPIC_API_KEY: "k" });
+    const r = await call({ body: { messages: [] } });
+    assert.equal(r.status, 400);
+  });
+
+  check(`${name}: real message reaches Anthropic and returns content`, async () => {
+    resetEnv({ ANTHROPIC_API_KEY: "k" });
+    const r = await call({ body: { messages: [{ role: "user", content: "hi" }] } });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.content[0].text, "stubbed reply");
+    assert.match(lastRequest.url, /api\.anthropic\.com/);
+    assert.equal(lastRequest.opts.headers["x-api-key"], "k");
+  });
+
+  check(`${name}: GEMINI_API_KEY alone routes to Gemini`, async () => {
+    resetEnv({ GEMINI_API_KEY: "gk" });
+    const r = await call({ body: { messages: [{ role: "user", content: "hi" }] } });
+    assert.equal(r.status, 200);
+    assert.match(lastRequest.url, /generativelanguage\.googleapis\.com/);
+    // Gemini's shape must be normalised to Anthropic's before it reaches
+    // the frontend, which only knows how to read content[].text.
+    assert.equal(r.body.content[0].text, "stubbed reply");
+    assert.equal(r.body.content[0].type, "text");
+  });
+
+  check(`${name}: max_tokens is clamped to 1400`, async () => {
+    resetEnv({ ANTHROPIC_API_KEY: "k" });
+    await call({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 99999 } });
+    assert.equal(JSON.parse(lastRequest.opts.body).max_tokens, 1400);
+  });
+}
+
+// --- the bug this port was meant to fix -----------------------------------
+check("clientIp reads x-forwarded-for (Vercel), not just the Netlify header", async () => {
+  const { clientIp } = await import("../lib/chat-core.js");
+  const vercelHeaders = { "x-forwarded-for": "203.0.113.9, 70.41.3.18" };
+  assert.equal(clientIp((n) => vercelHeaders[n] ?? null), "203.0.113.9",
+    "must take the first hop from x-forwarded-for");
+  const netlifyHeaders = { "x-nf-client-connection-ip": "198.51.100.4" };
+  assert.equal(clientIp((n) => netlifyHeaders[n] ?? null), "198.51.100.4",
+    "Netlify must keep working");
+  assert.equal(clientIp(() => null), "unknown");
+});
+
+check("rate limiter separates two IPs", async () => {
+  resetEnv({ ANTHROPIC_API_KEY: "k", RATE_PER_HOUR: "120" });
+  const { overLimit } = await import("../lib/chat-core.js");
+  for (let i = 0; i < 130; i++) overLimit("1.1.1.1");
+  assert.equal(overLimit("1.1.1.1"), true, "hammered IP should be limited");
+  assert.equal(overLimit("2.2.2.2"), false, "a different IP must not be");
+});
+
+// --- run ------------------------------------------------------------------
+let pass = 0, fail = 0;
+for (const [name, fn] of results) {
+  try { await fn(); console.log(`  PASS  ${name}`); pass++; }
+  catch (e) { console.log(`  FAIL  ${name}\n        ${e.message}`); fail++; }
+}
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);
