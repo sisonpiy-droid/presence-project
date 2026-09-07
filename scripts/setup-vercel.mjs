@@ -65,6 +65,26 @@ for (const raw of readFileSync(".env", "utf8").split(/\r?\n/)) {
 
 if (!vars.size) { console.error("No sendable variables set in .env."); process.exit(1); }
 
+/* Pin the provider explicitly.
+
+   pickProvider() checks ANTHROPIC_API_KEY before GEMINI_API_KEY, so a stale
+   Anthropic key left in the Vercel project from earlier experimentation
+   silently beats the Gemini key we are about to push -- and the local .env
+   gives no hint that it is happening. Sending LLM_PROVIDER makes the choice
+   explicit, so leftovers cannot change which provider answers. */
+const chosen = vars.has("GEMINI_API_KEY") && !vars.has("ANTHROPIC_API_KEY") ? "gemini"
+             : vars.has("ANTHROPIC_API_KEY") && !vars.has("GEMINI_API_KEY") ? "anthropic"
+             : (vars.get("LLM_PROVIDER") || "").toLowerCase();
+
+if (!chosen) {
+  console.error("Both provider keys are set in .env but LLM_PROVIDER is not.");
+  console.error("Set LLM_PROVIDER to \"gemini\" or \"anthropic\" and run again.");
+  process.exit(1);
+}
+vars.set("LLM_PROVIDER", chosen);
+console.log(`Provider: ${chosen} (pinned via LLM_PROVIDER)
+`);
+
 if (!vars.has("PRESENCE_PASSCODE")) {
   console.log("WARNING: PRESENCE_PASSCODE is not set. Your endpoint will be open to");
   console.log("         anyone who finds the URL, spending your API credit.\n");
@@ -96,6 +116,18 @@ for (const [k, v] of vars) {
 if (failed) {
   console.error(`\n${failed} variable(s) failed. Not deploying.`);
   process.exit(1);
+}
+
+// --- warn about the other provider's key still sitting in the project -----
+const other = chosen === "gemini" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
+const listed = run(["env", "ls"]);
+if (listed.status === 0 && new RegExp(`\b${other}\b`).test(listed.stdout || "")) {
+  console.log(`
+Note: ${other} is still set in this Vercel project.`);
+  console.log(`      LLM_PROVIDER=${chosen} means it will not be used, but it is dead`);
+  console.log(`      weight and a future reader will find it confusing. Remove it with:`);
+  console.log(`        vercel env rm ${other} production --yes
+`);
 }
 
 // --- deploy ---------------------------------------------------------------

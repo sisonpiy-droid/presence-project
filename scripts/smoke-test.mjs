@@ -143,6 +143,24 @@ check("default Gemini model is not the retired gemini-2.0-flash", async () => {
   assert.match(lastRequest.url, /gemini-3\.6-flash/);
 });
 
+check("a stale Anthropic key beats Gemini unless LLM_PROVIDER pins it", async () => {
+  const { pickProvider } = await import("../lib/chat-core.js");
+  // Documents why setup:vercel always sends LLM_PROVIDER. This is the real
+  // precedence, not the desired one -- if it ever changes, the deploy script
+  // needs revisiting.
+  resetEnv({ GEMINI_API_KEY: "g", ANTHROPIC_API_KEY: "sk-ant-stale" });
+  assert.equal(pickProvider(), "anthropic", "Anthropic is checked first");
+
+  resetEnv({ GEMINI_API_KEY: "g", ANTHROPIC_API_KEY: "sk-ant-stale", LLM_PROVIDER: "gemini" });
+  assert.equal(pickProvider(), "gemini", "LLM_PROVIDER must override the stale key");
+});
+
+check("an empty ANTHROPIC_API_KEY does not hijack the provider", async () => {
+  const { pickProvider } = await import("../lib/chat-core.js");
+  resetEnv({ GEMINI_API_KEY: "g", ANTHROPIC_API_KEY: "", ANTHROPIC_MODEL: "claude-sonnet-5" });
+  assert.equal(pickProvider(), "gemini");
+});
+
 // --- the bug this port was meant to fix -----------------------------------
 check("clientIp reads x-forwarded-for (Vercel), not just the Netlify header", async () => {
   const { clientIp } = await import("../lib/chat-core.js");
