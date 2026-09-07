@@ -23,7 +23,7 @@ globalThis.fetch = async (url, opts) => {
 };
 
 function resetEnv(env = {}) {
-  for (const k of ["ANTHROPIC_API_KEY","GEMINI_API_KEY","ANTHROPIC_MODEL","GEMINI_MODEL","LLM_PROVIDER","PRESENCE_PASSCODE","RATE_PER_HOUR"]) {
+  for (const k of ["ANTHROPIC_API_KEY","GEMINI_API_KEY","ANTHROPIC_MODEL","GEMINI_MODEL","LLM_PROVIDER","PRESENCE_PASSCODE","RATE_PER_HOUR","MAX_TOKENS_CAP"]) {
     delete process.env[k];
   }
   Object.assign(process.env, env);
@@ -113,26 +113,36 @@ for (const [name, call] of Object.entries(both)) {
     assert.equal(r.body.content[0].type, "text");
   });
 
-  check(`${name}: max_tokens is clamped to 1400`, async () => {
+  check(`${name}: the client's max_tokens is ignored by default`, async () => {
     resetEnv({ ANTHROPIC_API_KEY: "k" });
-    await call({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 99999 } });
-    assert.equal(JSON.parse(lastRequest.opts.body).max_tokens, 1400);
+    // The built frontend hardcodes 450-850 per register and cannot be
+    // rebuilt, so honouring its number is what truncated replies.
+    await call({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 450 } });
+    assert.equal(JSON.parse(lastRequest.opts.body).max_tokens, 8192,
+      "should fall back to ANTHROPIC_DEFAULT_MAX, not the client's 450");
   });
 }
 
-check("Gemini gets thinking headroom on top of the caller's budget", async () => {
+check("Gemini sends no maxOutputTokens when uncapped", async () => {
   resetEnv({ GEMINI_API_KEY: "gk" });
-  await callVercel({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 700 } });
-  const sent = JSON.parse(lastRequest.opts.body).generationConfig.maxOutputTokens;
-  // Gemini 3.x counts reasoning against maxOutputTokens; without headroom a
-  // 700-token budget left ~55 tokens for the visible reply.
-  assert.equal(sent, 1300, "700 requested + 600 headroom");
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 450 } });
+  const cfg = JSON.parse(lastRequest.opts.body).generationConfig;
+  // Omitting it lets the model run to its own 65536 limit and stop when the
+  // thought is finished, instead of being cut off mid-sentence.
+  assert.ok(!("maxOutputTokens" in cfg), "maxOutputTokens must be absent when uncapped");
 });
 
-check("Anthropic budget is untouched by the Gemini headroom", async () => {
-  resetEnv({ ANTHROPIC_API_KEY: "k" });
-  await callVercel({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 700 } });
-  assert.equal(JSON.parse(lastRequest.opts.body).max_tokens, 700);
+check("MAX_TOKENS_CAP re-imposes a ceiling, with thinking headroom", async () => {
+  resetEnv({ GEMINI_API_KEY: "gk", MAX_TOKENS_CAP: "1000" });
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }], max_tokens: 450 } });
+  assert.equal(JSON.parse(lastRequest.opts.body).generationConfig.maxOutputTokens, 1600,
+    "1000 cap + 600 headroom");
+});
+
+check("MAX_TOKENS_CAP applies to Anthropic without headroom", async () => {
+  resetEnv({ ANTHROPIC_API_KEY: "k", MAX_TOKENS_CAP: "1000" });
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }] } });
+  assert.equal(JSON.parse(lastRequest.opts.body).max_tokens, 1000);
 });
 
 check("default Gemini model is not the retired gemini-2.0-flash", async () => {

@@ -39,7 +39,9 @@ Set these in your host's dashboard, never in the repo. See `.env.example`.
 | `LLM_PROVIDER` | only if both keys set | `anthropic` or `gemini` |
 | `PRESENCE_PASSCODE` | **yes, in practice** | testers type it once |
 | `RATE_PER_HOUR` | no | default 120 |
-| `GEMINI_THINKING_HEADROOM` | no | default 600, see below |
+| `GEMINI_THINKING_HEADROOM` | no | default 600, only used when `MAX_TOKENS_CAP` is set |
+| `MAX_TOKENS_CAP` | no | unset = no output limit, see below |
+| `ANTHROPIC_MAX_TOKENS` | no | default 8192; Anthropic requires a number |
 
 Set one provider's key and it picks that provider automatically.
 
@@ -72,6 +74,32 @@ npm run test:live
 
 To see what your key can actually reach, list the models rather than guessing
 at a name from documentation.
+
+## Output length is uncapped by default
+
+The built frontend hardcodes a token budget per register (`texts` 450,
+`letter` 850) chosen for Anthropic, which spends none of them thinking.
+Gemini 3.x spends 800-1000 on a letter-length prompt before writing a word,
+so those budgets truncated replies mid-sentence.
+
+Since the bundle cannot be rebuilt from this repo, the client's `max_tokens`
+is **ignored**. Gemini requests omit `maxOutputTokens` entirely and the model
+stops when it has finished, up to its own 65536 limit. Measured on
+`gemini-3.6-flash` with the letter register:
+
+| maxOutputTokens | finishReason | reply |
+|---|---|---|
+| 850 (register value) | `MAX_TOKENS` | 30 tokens, cut off |
+| 850 + 600 headroom | `MAX_TOKENS` | 450 tokens, cut off |
+| omitted | `STOP` | 735 tokens, complete |
+
+Register *style* still works, because each register's system prompt describes
+its own length ("Short, several messages in a row").
+
+Set `MAX_TOKENS_CAP` to a number to re-impose a ceiling; it then gets
+`GEMINI_THINKING_HEADROOM` added on Gemini. Note that uncapped output costs
+more per reply -- on Gemini's free tier this is bounded by the tier itself,
+but on a paid key a long conversation is billed for what it generates.
 
 ## Gemini spends tokens thinking
 
