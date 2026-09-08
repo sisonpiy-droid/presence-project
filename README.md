@@ -130,3 +130,8 @@ moved into `src/` and the host set to build on push. Until then, treat
 instances and recycles them, so this blunts a burst from one IP against one
 warm instance — it is not a real quota. Anything load-bearing needs shared
 storage (Vercel KV, Upstash).
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for what the backend protects against, and
+the known weaknesses to read before testing with real people.

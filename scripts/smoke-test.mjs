@@ -23,9 +23,16 @@ globalThis.fetch = async (url, opts) => {
 };
 
 function resetEnv(env = {}) {
-  for (const k of ["ANTHROPIC_API_KEY","GEMINI_API_KEY","ANTHROPIC_MODEL","GEMINI_MODEL","LLM_PROVIDER","PRESENCE_PASSCODE","RATE_PER_HOUR","MAX_TOKENS_CAP"]) {
+  for (const k of ["ANTHROPIC_API_KEY","GEMINI_API_KEY","ANTHROPIC_MODEL","GEMINI_MODEL",
+                   "LLM_PROVIDER","PRESENCE_PASSCODE","RATE_PER_HOUR","MAX_TOKENS_CAP",
+                   "ALLOW_NO_PASSCODE","MAX_INPUT_CHARS","MAX_MESSAGES","MAX_SYSTEM_CHARS",
+                   "UPSTREAM_TIMEOUT_MS"]) {
     delete process.env[k];
   }
+  // The endpoint now refuses to serve without a passcode. Most tests are not
+  // about that, so they opt out explicitly; the fail-closed behaviour has its
+  // own tests below.
+  process.env.ALLOW_NO_PASSCODE = "1";
   Object.assign(process.env, env);
 }
 
@@ -169,6 +176,87 @@ check("an empty ANTHROPIC_API_KEY does not hijack the provider", async () => {
   const { pickProvider } = await import("../lib/chat-core.js");
   resetEnv({ GEMINI_API_KEY: "g", ANTHROPIC_API_KEY: "", ANTHROPIC_MODEL: "claude-sonnet-5" });
   assert.equal(pickProvider(), "gemini");
+});
+
+// --- security --------------------------------------------------------------
+check("refuses to serve when PRESENCE_PASSCODE is unset (fail closed)", async () => {
+  resetEnv({ GEMINI_API_KEY: "g" });
+  delete process.env.ALLOW_NO_PASSCODE;
+  const r = await callVercel({ body: { ping: true } });
+  // A forgotten variable used to mean an open endpoint spending real money.
+  assert.equal(r.status, 503);
+  assert.equal(r.body.error, "no_passcode");
+});
+
+check("ALLOW_NO_PASSCODE=1 is a deliberate opt-out", async () => {
+  resetEnv({ GEMINI_API_KEY: "g", ALLOW_NO_PASSCODE: "1" });
+  assert.equal((await callVercel({ body: { ping: true } })).status, 200);
+});
+
+check("an empty x-presence-key does not pass", async () => {
+  resetEnv({ GEMINI_API_KEY: "g", PRESENCE_PASSCODE: "crossword" });
+  assert.equal((await callVercel({ headers: { "x-presence-key": "" }, body: { ping: true } })).status, 401);
+  assert.equal((await callVercel({ body: { ping: true } })).status, 401, "missing header must fail too");
+});
+
+check("the Gemini key is sent as a header, never in the URL", async () => {
+  resetEnv({ GEMINI_API_KEY: "AIzaSyTOTALLYFAKEKEYVALUE1234567" });
+  await callVercel({ body: { messages: [{ role: "user", content: "hi" }] } });
+  assert.ok(!lastRequest.url.includes("key="), "no key= in the query string");
+  assert.ok(!lastRequest.url.includes("AIzaSy"), "key must not appear in the URL at all");
+  assert.equal(lastRequest.opts.headers["x-goog-api-key"], "AIzaSyTOTALLYFAKEKEYVALUE1234567");
+});
+
+check("redact() strips keys out of text bound for the client", async () => {
+  const { redact } = await import("../lib/chat-core.js");
+  resetEnv({ GEMINI_API_KEY: "AIzaSyTOTALLYFAKEKEYVALUE1234567" });
+  const leak = "failed for https://x/v1beta/models/m:generateContent?key=AIzaSyTOTALLYFAKEKEYVALUE1234567 oops";
+  const clean = redact(leak);
+  assert.ok(!clean.includes("AIzaSyTOTALLYFAKEKEYVALUE1234567"), "configured key must be gone");
+  assert.ok(!/AIza[A-Za-z0-9_-]{10,}/.test(clean), "no key-shaped text may survive");
+  assert.ok(!/sk-ant-[A-Za-z0-9]/.test(redact("oops sk-ant-api03-REALLOOKINGKEY123456")));
+});
+
+check("oversized input is rejected before it reaches the provider", async () => {
+  resetEnv({ GEMINI_API_KEY: "g", MAX_INPUT_CHARS: "1000" });
+  lastRequest = null;
+  const r = await callVercel({ body: { messages: [{ role: "user", content: "x".repeat(2000) }] } });
+  assert.equal(r.status, 413);
+  assert.equal(r.body.error, "input_too_long");
+  assert.equal(lastRequest, null, "must not spend money on an oversized request");
+});
+
+check("too many messages is rejected", async () => {
+  resetEnv({ GEMINI_API_KEY: "g", MAX_MESSAGES: "3" });
+  const many = Array.from({ length: 10 }, () => ({ role: "user", content: "hi" }));
+  assert.equal((await callVercel({ body: { messages: many } })).status, 413);
+});
+
+check("an oversized system prompt is rejected", async () => {
+  resetEnv({ GEMINI_API_KEY: "g", MAX_SYSTEM_CHARS: "100" });
+  const r = await callVercel({ body: { system: "s".repeat(500), messages: [{ role: "user", content: "hi" }] } });
+  assert.equal(r.status, 413);
+  assert.equal(r.body.error, "system_too_long");
+});
+
+check("malformed messages are rejected", async () => {
+  resetEnv({ GEMINI_API_KEY: "g" });
+  for (const bad of [[{ role: "system", content: "x" }], [{ role: "user", content: { a: 1 } }], [null], ["hello"]]) {
+    const r = await callVercel({ body: { messages: bad } });
+    assert.equal(r.status, 400, `should reject ${JSON.stringify(bad)}`);
+  }
+});
+
+check("rate limiter cannot be reset by flooding it with fresh IPs", async () => {
+  resetEnv({ GEMINI_API_KEY: "g", RATE_PER_HOUR: "5" });
+  const { overLimit } = await import("../lib/chat-core.js");
+  const victim = "9.9.9.9";
+  for (let i = 0; i < 6; i++) overLimit(victim);
+  assert.equal(overLimit(victim), true, "victim is limited");
+  // The old code called seen.clear() past 5000 entries, which handed the
+  // victim a fresh allowance along with everyone else.
+  for (let i = 0; i < 6000; i++) overLimit(`10.${(i>>16)&255}.${(i>>8)&255}.${i&255}`);
+  assert.equal(overLimit(victim), true, "must still be limited after the flood");
 });
 
 // --- the bug this port was meant to fix -----------------------------------
