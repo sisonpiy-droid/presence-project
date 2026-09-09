@@ -1,0 +1,64 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "khoj-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "D:\\khoj",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "kargo-hiring",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/sison/Desktop/coding/kargo-hiring",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "jarvis-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/sison/Desktop/coding/jarvis/apps/web",
+        "run",
+        "dev"
+      ],
+      "port": 3200
+    },
+    {
+      "name": "jarvis-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "C:/Users/sison/Desktop/coding/jarvis/data/preview.ts"
+      ],
+      "port": 3210
+    },
+    {
+      "name": "muse-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/sison/Desktop/coding/muse",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3300"
+      ],
+      "port": 3300
+    }
+  ]
+}
