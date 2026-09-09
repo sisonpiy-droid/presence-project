@@ -6,6 +6,7 @@ presence-netlify.zip
 .env.*
 !.env.example
 
+dist/
 node_modules/
 .netlify/
 .DS_Store

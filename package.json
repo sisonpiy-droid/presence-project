@@ -11,6 +11,18 @@
     "check": "node --check api/chat.js && node --check lib/chat-core.js && node --check netlify/functions/chat.js",
     "test:function": "node scripts/smoke-test.mjs",
     "test:live": "node --env-file=.env scripts/live-test.mjs",
-    "setup:vercel": "node scripts/setup-vercel.mjs"
+    "setup:vercel": "node scripts/setup-vercel.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:api": "node --env-file=.env scripts/dev-api.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.11",
+    "@vitejs/plugin-react": "^4.3.4"
   }
 }

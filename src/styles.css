@@ -1,0 +1,361 @@
+/* Presence — visual system.
+
+   Dark, quiet, serif-led. The restraint is deliberate: this is used by people
+   who are grieving, and an interface with opinions gets in the way.
+
+   Every colour below was measured against its own background rather than
+   picked by eye. The previous --quieter (#5F6674) sat at 3.17:1 on the page
+   ground and carried all the fine print, timestamps and placeholders, which
+   is a WCAG AA failure on exactly the text people squint at most. */
+
+:root {
+  --ground:   #12151B;
+  --raised:   #1A1F27;
+  --raised-2: #212733;
+  --ink:      #EDE8DF;   /* 14.98:1 on ground */
+  --quiet:    #A8AEBB;   /*  8.21:1 */
+  --quieter:  #848B9A;   /*  5.35:1 on ground, 4.84:1 on raised */
+  --warm:     #E5B978;   /* 10.05:1 */
+  --alarm:    #D9AEBC;   /*  9.34:1 */
+  --edge:     #2A3140;
+  --edge-lit: #3A4356;
+
+  --serif: "Newsreader", ui-serif, Georgia, serif;
+  --sans:  "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* A 1.25 scale, so headings relate to each other instead of each being
+     chosen on its own. */
+  --t-xs:  0.76rem;
+  --t-sm:  0.875rem;
+  --t-md:  1rem;
+  --t-lg:  1.25rem;
+  --t-xl:  1.6rem;
+  --t-3xl: 2.75rem;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+
+  /* Touch targets. 44px is the smallest reliably hittable with a thumb. */
+  --tap: 44px;
+
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { margin: 0; min-height: 100%; background: var(--ground); }
+html { -webkit-text-size-adjust: 100%; }
+
+.pr-root {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  /* One warm source, top left, barely there. Gives the page somewhere to come
+     from without becoming decoration. */
+  background-image: radial-gradient(120% 60% at 12% -10%, rgb(229 185 120 / 0.06), transparent 62%);
+  background-attachment: fixed;
+}
+.pr-boot { opacity: 0; animation: pr-in 400ms var(--ease) 120ms forwards; }
+
+.pr-wrap {
+  max-width: 36rem;
+  margin: 0 auto;
+  /* env() keeps the page clear of the notch and the home indicator. */
+  padding: max(2rem, env(safe-area-inset-top)) 1.5rem calc(7rem + env(safe-area-inset-bottom));
+}
+
+/* ---------- type ---------- */
+
+.pr-mark {
+  font-family: var(--serif);
+  font-size: var(--t-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--quieter);
+  margin: 0 0 3rem;
+}
+.pr-display {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 7vw, var(--t-3xl));
+  font-weight: 300;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.25rem;
+  text-wrap: balance;
+}
+.pr-ask {
+  font-family: var(--serif);
+  font-size: clamp(1.45rem, 5vw, var(--t-xl));
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.85rem;
+  text-wrap: balance;
+}
+.pr-body { color: var(--quiet); margin: 0 0 1rem; max-width: 60ch; }
+.pr-fine { color: var(--quieter); font-size: var(--t-xs); line-height: 1.65; }
+.pr-rule { height: 1px; background: var(--edge); border: 0; margin: 2.25rem 0; }
+.pr-danger { color: var(--alarm); }
+
+/* ---------- controls ---------- */
+
+.pr-btn, .pr-btn-ghost, .pr-btn-bare, .pr-chip, .pr-opener button {
+  font: inherit;
+  min-height: var(--tap);
+  cursor: pointer;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease),
+              color 140ms var(--ease), transform 140ms var(--ease);
+}
+.pr-btn {
+  font-weight: 600;
+  background: var(--ink);
+  color: var(--ground);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  padding: 0.7rem 1.5rem;
+  box-shadow: var(--shadow);
+}
+.pr-btn:hover:not(:disabled) { background: #fff; transform: translateY(-1px); }
+.pr-btn:active:not(:disabled) { transform: translateY(0); }
+.pr-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+.pr-btn-ghost {
+  font-weight: 500;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--edge-lit);
+  border-radius: var(--r-md);
+  padding: 0.7rem 1.4rem;
+}
+.pr-btn-ghost:hover { border-color: var(--quiet); background: var(--raised); }
+
+.pr-btn-bare {
+  background: none;
+  border: 0;
+  color: var(--quiet);
+  padding: 0.5rem 0;
+  font-size: var(--t-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--edge-lit);
+}
+.pr-btn-bare:hover { color: var(--ink); text-decoration-color: var(--quiet); }
+
+.pr-row { display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap; }
+
+.pr-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.pr-chip {
+  font-size: var(--t-sm);
+  background: var(--raised);
+  color: var(--quiet);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+}
+.pr-chip:hover { color: var(--ink); border-color: var(--edge-lit); }
+.pr-chip[data-on="1"] {
+  border-color: var(--warm);
+  color: var(--warm);
+  background: rgb(229 185 120 / 0.1);
+}
+
+.pr-in, .pr-sm, .pr-paste, .pr-box {
+  font-family: var(--sans);
+  font-size: var(--t-md);
+  width: 100%;
+  background: var(--raised);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-md);
+  padding: 0.7rem 0.85rem;
+  min-height: var(--tap);
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+.pr-in:focus, .pr-sm:focus, .pr-paste:focus { border-color: var(--warm); background: var(--raised-2); outline: none; }
+.pr-in::placeholder, .pr-sm::placeholder, .pr-paste::placeholder, .pr-composer textarea::placeholder { color: var(--quieter); }
+.pr-sm, .pr-paste { resize: vertical; line-height: 1.55; }
+
+.pr-lab { display: block; font-size: var(--t-xs); color: var(--quieter); margin-bottom: 0.4rem; letter-spacing: 0.02em; }
+.pr-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.85rem; }
+.pr-set { margin: 0 0 2.25rem; }
+.pr-set > label { display: block; font-size: var(--t-sm); color: var(--quiet); margin-bottom: 0.75rem; }
+
+.pr-progress { height: 2px; background: var(--edge); border-radius: 999px; margin: 0 0 2.5rem; overflow: hidden; }
+.pr-progress i { display: block; height: 100%; background: var(--warm); transition: width 320ms var(--ease); }
+
+/* ---------- conversation ---------- */
+
+.pr-day { display: flex; align-items: center; gap: 0.85rem; margin: 2.5rem 0 1.75rem; }
+.pr-day i { flex: 1; height: 1px; background: var(--edge); }
+.pr-day span, .pr-day > b {
+  font-size: var(--t-xs); color: var(--quieter); font-weight: 400;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+.pr-turn { margin: 0 0 0.5rem; animation: pr-in 320ms var(--ease) both; }
+.pr-turn.pr-head { margin-top: 2rem; }
+.pr-who { font-size: var(--t-xs); letter-spacing: 0.06em; color: var(--warm); margin: 0 0 0.5rem; font-weight: 500; }
+.pr-who em { font-style: normal; color: var(--quieter); font-weight: 400; letter-spacing: 0; margin-left: 0.5rem; }
+
+/* Them: serif, unboxed, given room. The person is the page, not a bubble. */
+.pr-said {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 3.6vw, var(--t-lg));
+  line-height: 1.62;
+  margin: 0 0 0.6rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* You: a quiet card, offset right. Distinct at a glance without competing. */
+.pr-mine {
+  margin: 2rem 0 0.5rem auto;
+  max-width: 88%;
+  width: fit-content;
+  background: var(--raised);
+  border: 1px solid var(--edge);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-sm) var(--r-lg);
+  padding: 0.75rem 1rem;
+  animation: pr-in 320ms var(--ease) both;
+}
+.pr-mine .pr-who { color: var(--quieter); text-align: right; }
+.pr-mine p { font-size: var(--t-sm); line-height: 1.6; color: var(--quiet); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@keyframes pr-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.pr-fix { opacity: 0; transition: opacity 160ms var(--ease); margin: 0.1rem 0 1.4rem; }
+.pr-turn:hover .pr-fix, .pr-turn:focus-within .pr-fix, .pr-fix[data-open="1"] { opacity: 1; }
+@media (hover: none) { .pr-fix { opacity: 1; } }
+
+.pr-typing { color: var(--warm); font-size: var(--t-xs); letter-spacing: 0.05em; margin: 2rem 0 1.5rem; }
+.pr-typing i { font-style: normal; animation: prb 1.4s infinite; }
+.pr-typing i:nth-child(2) { animation-delay: 0.2s; }
+.pr-typing i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes prb { 0%,60%,100% { opacity: 0.25; } 30% { opacity: 1; } }
+
+.pr-opener { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; margin: 2.5rem 0 1rem; }
+.pr-opener > p { font-size: var(--t-xs); color: var(--quieter); margin: 0 0 0.3rem; }
+.pr-opener button {
+  font-size: var(--t-sm); text-align: left; background: var(--raised);
+  color: var(--quiet); border: 1px solid var(--edge); border-radius: var(--r-md);
+  padding: 0.65rem 1rem; width: 100%;
+}
+.pr-opener button:hover { color: var(--ink); border-color: var(--edge-lit); transform: translateX(2px); }
+
+.pr-fault {
+  border-left: 2px solid var(--alarm);
+  background: rgb(217 174 188 / 0.06);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  padding: 0.9rem 1rem;
+  margin: 1.5rem 0;
+}
+.pr-fault p { color: var(--quiet); font-size: var(--t-sm); margin: 0 0 0.35rem; }
+
+.pr-care {
+  border: 1px solid var(--alarm);
+  border-radius: var(--r-md);
+  padding: 1.5rem;
+  margin: 2rem 0 1.5rem;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+}
+.pr-care h3 { font-family: var(--serif); font-weight: 400; font-size: var(--t-lg); margin: 0 0 0.75rem; }
+.pr-care p { color: var(--quiet); font-size: var(--t-sm); line-height: 1.7; margin: 0 0 0.75rem; }
+.pr-care a { color: var(--alarm); }
+
+/* ---------- vibe panel ---------- */
+
+.pr-vibe { border-top: 1px solid var(--edge); margin-top: 2rem; padding-top: 0.5rem; }
+.pr-vibe > button {
+  font: inherit; font-size: var(--t-xs); cursor: pointer; background: none; border: 0;
+  color: var(--quieter); padding: 0.6rem 0; min-height: var(--tap);
+  display: flex; gap: 0.5rem; align-items: center; width: 100%; text-align: left;
+}
+.pr-vibe > button:hover { color: var(--quiet); }
+.pr-vibe > button b { font-weight: 500; color: var(--warm); }
+.pr-vibe-panel { padding: 0.5rem 0 0.3rem; animation: pr-in 220ms var(--ease); }
+.pr-vibe-panel > div { margin-bottom: 1.25rem; }
+.pr-vibe-panel label { display: block; font-size: var(--t-xs); color: var(--quieter); margin-bottom: 0.55rem; }
+
+/* ---------- composer ---------- */
+
+.pr-composer {
+  position: sticky;
+  bottom: 0;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--edge);
+  padding: 0.85rem 0 calc(1rem + env(safe-area-inset-bottom));
+  margin-top: 2rem;
+}
+.pr-composer textarea {
+  font-family: var(--sans);
+  /* 16px minimum: iOS Safari zooms the whole page on focus below that. */
+  font-size: 16px;
+  line-height: 1.55;
+  width: 100%;
+  max-height: 9rem;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+  padding: 0.4rem 0 0.7rem;
+}
+
+.pr-bar { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; border-bottom: 1px solid var(--edge); padding-bottom: 1rem; }
+.pr-bar h2 { font-family: var(--serif); font-weight: 400; font-size: var(--t-lg); margin: 0; }
+.pr-bar h2 em { font-style: normal; display: block; font-family: var(--sans); font-size: var(--t-xs); color: var(--quieter); margin-top: 0.3rem; }
+
+/* ---------- passcode gate ---------- */
+
+.pr-gate { display: flex; flex-direction: column; justify-content: center; min-height: 100dvh; }
+.pr-gate-form { display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; margin-top: 2rem; max-width: 20rem; }
+.pr-gate-form .pr-in { font-size: 16px; letter-spacing: 0.1em; }
+.pr-gate-form .pr-btn { align-self: stretch; }
+.pr-gate-err { color: var(--alarm); font-size: var(--t-sm); margin: 0.85rem 0 0; }
+
+/* ---------- focus, motion, small screens ---------- */
+
+:focus-visible {
+  outline: 2px solid var(--warm);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+/* Only drop the ring where :focus-visible is understood, so keyboard users
+   never lose it in an older browser. */
+:focus:not(:focus-visible) { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .pr-btn:hover:not(:disabled), .pr-opener button:hover { transform: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --quieter: #A8AEBB; --edge: #4A5567; }
+}
+
+@media (max-width: 480px) {
+  .pr-wrap { padding: max(1.5rem, env(safe-area-inset-top)) 1.15rem calc(7rem + env(safe-area-inset-bottom)); }
+  .pr-mark { margin-bottom: 2rem; }
+  .pr-pair { grid-template-columns: 1fr; }
+  .pr-mine { max-width: 92%; }
+  /* Full-width actions on the setup screens, where a row is the whole
+     decision. Not in the composer, where Send sits beside a hint and
+     stretching it swallows the line. */
+  .pr-row .pr-btn, .pr-row .pr-btn-ghost { flex: 1 1 auto; justify-content: center; }
+  .pr-composer .pr-row .pr-btn { flex: 0 0 auto; }
+}

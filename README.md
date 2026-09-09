@@ -52,6 +52,9 @@ endpoints get found by scanners within days.
 ## Testing
 
 ```
+npm run dev            Vite dev server (proxies /api to dev:api)
+npm run dev:api        the real function, locally, reading .env
+npm run build          production build into dist/
 npm run check          syntax-check every entry point
 npm run test:function  21 assertions, stubbed provider, no network, no spend
 npm run test:live      real calls to the real provider, reads .env, costs a little
@@ -135,3 +138,22 @@ storage (Vercel KV, Upstash).
 
 See [SECURITY.md](SECURITY.md) for what the backend protects against, and
 the known weaknesses to read before testing with real people.
+
+## The frontend is built now
+
+`src/App.jsx` is the app; `npm run build` compiles it to `dist/`, which is what
+Vercel and Netlify serve. Editing the source and pushing now changes the site.
+
+That was not true before. The repo shipped a prebuilt `assets/index-*.js` with
+no way to rebuild it, and `presence-app.jsx` had drifted a generation behind
+it: that file called `api.anthropic.com` straight from the browser, knew
+nothing about `/api/chat`, and had no passcode screen. Building from it would
+have reverted the backend. The missing networking layer was rewritten into
+`src/App.jsx` before anything else changed.
+
+To work on it locally with a real model:
+
+```
+npm run dev:api     # terminal 1 - the function, reading .env
+npm run dev         # terminal 2 - the app, proxying /api to it
+```

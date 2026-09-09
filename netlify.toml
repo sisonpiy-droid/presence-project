@@ -1,7 +1,8 @@
 # Tells Netlify where the site and the function live in this folder.
 
 [build]
-  publish = "."
+  command = "npm run build"
+  publish = "dist"
   functions = "netlify/functions"
 
 # Single-page app: every path serves index.html.

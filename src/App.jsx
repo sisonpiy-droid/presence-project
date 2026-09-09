@@ -15,137 +15,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
      composer, larger tap targets, no scroll hijacking.
    ============================================================ */
 
-const STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..500;1,6..72,300..500&family=Instrument+Sans:wght@400;500&display=swap');
-
-.pr-root {
-  --ground: #1B2028; --raised: #232936; --ink: #E8E4DC;
-  --quiet: #8D93A0; --quieter: #5F6674; --warm: #DBAE6A;
-  --edge: #303747; --alarm: #C4A8B4;
-  background: var(--ground); color: var(--ink);
-  font-family: 'Instrument Sans', system-ui, sans-serif;
-  min-height: 100vh; font-size: 15px; line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-.pr-root * { box-sizing: border-box; }
-.pr-wrap { max-width: 34rem; margin: 0 auto; padding: 2rem 1.5rem 7rem; }
-
-.pr-mark { font-family: 'Newsreader', serif; font-size: 0.95rem; letter-spacing: 0.02em; color: var(--quiet); margin: 0 0 3.5rem; }
-.pr-display { font-family: 'Newsreader', serif; font-size: 2.1rem; font-weight: 300; line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 1.5rem; }
-.pr-ask { font-family: 'Newsreader', serif; font-size: 1.55rem; font-weight: 300; line-height: 1.3; margin: 0 0 0.75rem; }
-.pr-body { color: var(--quiet); margin: 0 0 1rem; max-width: 30rem; }
-.pr-fine { color: var(--quieter); font-size: 0.8rem; line-height: 1.6; }
-.pr-rule { height: 1px; background: var(--edge); border: 0; margin: 2rem 0; }
-
-.pr-btn { font: inherit; font-weight: 500; cursor: pointer; background: var(--ink); color: var(--ground); border: 0; border-radius: 2px; padding: 0.7rem 1.4rem; }
-.pr-btn:hover { background: #fff; }
-.pr-btn:disabled { opacity: 0.35; cursor: default; }
-.pr-btn-ghost { font: inherit; cursor: pointer; background: none; color: var(--quiet); border: 1px solid var(--edge); border-radius: 2px; padding: 0.7rem 1.4rem; }
-.pr-btn-ghost:hover { color: var(--ink); border-color: var(--quiet); }
-label.pr-btn-ghost { line-height: 1.5; }
-#pr-file:focus-visible + * , #pr-file:focus + * { outline: 2px solid var(--warm); outline-offset: 2px; }
-.pr-btn-bare { font: inherit; font-size: 0.8rem; cursor: pointer; background: none; border: 0; color: var(--quieter); padding: 0.35rem 0; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--edge); }
-.pr-btn-bare:hover { color: var(--quiet); }
-.pr-row { display: flex; gap: 0.9rem; flex-wrap: wrap; align-items: center; }
-
-.pr-pair { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem; }
-.pr-pair > div { flex: 1 1 11rem; }
-.pr-lab { display: block; font-size: 0.78rem; color: var(--quiet); margin-bottom: 0.35rem; }
-.pr-in { font-family: 'Newsreader', serif; font-size: 1.25rem; width: 100%; background: transparent; color: var(--ink); border: 0; border-bottom: 1px solid var(--edge); padding: 0.35rem 0 0.6rem; outline: none; }
-.pr-in:focus { border-bottom-color: var(--warm); }
-.pr-in::placeholder { color: var(--quieter); font-style: italic; font-size: 1rem; }
-.pr-sm { font-family: 'Instrument Sans', sans-serif; font-size: 0.95rem; width: 100%; background: transparent; color: var(--ink); border: 0; border-bottom: 1px solid var(--edge); padding: 0.35rem 0 0.55rem; outline: none; resize: none; overflow: hidden; }
-.pr-sm:focus { border-bottom-color: var(--warm); }
-.pr-sm::placeholder { color: var(--quieter); }
-.pr-paste { font-family: 'Instrument Sans', sans-serif; font-size: 0.9rem; line-height: 1.6; width: 100%; min-height: 13rem; background: var(--raised); color: var(--ink); border: 1px solid var(--edge); border-radius: 2px; padding: 1rem; outline: none; resize: vertical; }
-.pr-paste:focus { border-color: var(--warm); }
-.pr-paste::placeholder { color: var(--quieter); }
-.pr-box { font-family: 'Newsreader', serif; font-size: 1rem; line-height: 1.75; width: 100%; min-height: 15rem; background: var(--raised); color: var(--ink); border: 1px solid var(--edge); border-radius: 2px; padding: 1.25rem; outline: none; resize: vertical; }
-.pr-box:focus { border-color: var(--warm); }
-
-.pr-progress { height: 1px; background: var(--edge); margin-bottom: 2.75rem; }
-.pr-progress > i { display: block; height: 1px; background: var(--warm); transition: width 400ms ease; }
-
-/* transcript */
-.pr-day { display: flex; align-items: center; gap: 0.9rem; margin: 2.75rem 0 1.75rem; }
-.pr-day span { font-size: 0.7rem; letter-spacing: 0.08em; color: var(--quieter); white-space: nowrap; }
-.pr-day i { flex: 1; height: 1px; background: var(--edge); }
-
-.pr-turn { margin: 0 0 0.5rem; }
-.pr-turn.pr-head { margin-top: 1.9rem; }
-.pr-who { font-size: 0.7rem; letter-spacing: 0.06em; color: var(--warm); margin: 0 0 0.4rem; font-weight: 500; }
-.pr-who em { font-style: normal; color: var(--quieter); font-weight: 400; letter-spacing: 0; }
-.pr-said { font-family: 'Newsreader', serif; font-size: 1.2rem; line-height: 1.6; margin: 0 0 0.55rem; white-space: pre-wrap; }
-.pr-mine { margin: 1.9rem 0 0.5rem 1.5rem; padding-left: 1rem; border-left: 1px solid var(--edge); }
-.pr-mine .pr-who { color: var(--quieter); }
-.pr-mine p { font-size: 0.95rem; line-height: 1.6; color: var(--quiet); margin: 0; white-space: pre-wrap; }
-
-.pr-fix { opacity: 0; transition: opacity 160ms; margin: 0.1rem 0 1.4rem; }
-.pr-turn:hover .pr-fix, .pr-turn:focus-within .pr-fix, .pr-fix[data-open="1"] { opacity: 1; }
-@media (hover: none) { .pr-fix { opacity: 1; } }
-
-.pr-typing { color: var(--warm); font-size: 0.75rem; letter-spacing: 0.04em; margin: 1.9rem 0 1.5rem; }
-.pr-typing i { font-style: normal; animation: prb 1.4s infinite; }
-.pr-typing i:nth-child(2) { animation-delay: 0.2s; }
-.pr-typing i:nth-child(3) { animation-delay: 0.4s; }
-@keyframes prb { 0%,60%,100% { opacity: 0.25; } 30% { opacity: 1; } }
-
-.pr-opener { display: flex; flex-direction: column; align-items: flex-start; gap: 0.55rem; margin: 2.5rem 0 1rem; }
-.pr-opener > p { font-size: 0.78rem; color: var(--quieter); margin: 0 0 0.2rem; }
-.pr-opener button { font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; background: none; color: var(--quiet); border: 1px solid var(--edge); border-radius: 2px; padding: 0.55rem 0.9rem; }
-.pr-opener button:hover { color: var(--ink); border-color: var(--quiet); }
-
-.pr-fault { border-left: 2px solid var(--alarm); padding: 0.85rem 0 0.85rem 1rem; margin: 1.5rem 0; }
-.pr-fault p { color: var(--quiet); font-size: 0.85rem; margin: 0 0 0.5rem; }
-
-.pr-care { border: 1px solid var(--alarm); border-radius: 2px; padding: 1.5rem; margin: 2rem 0 1.5rem; background: var(--raised); }
-.pr-care h3 { font-family: 'Newsreader', serif; font-weight: 400; font-size: 1.25rem; margin: 0 0 0.75rem; }
-.pr-care p { color: var(--quiet); font-size: 0.9rem; line-height: 1.65; margin: 0 0 0.75rem; }
-.pr-care a { color: var(--alarm); }
-
-.pr-vibe { border-top: 1px solid var(--edge); margin-top: 2rem; padding-top: 0.9rem; }
-.pr-vibe > button {
-  font: inherit; font-size: 0.78rem; cursor: pointer; background: none; border: 0;
-  color: var(--quieter); padding: 0.2rem 0; display: flex; gap: 0.5rem; align-items: baseline;
-}
-.pr-vibe > button:hover { color: var(--quiet); }
-.pr-vibe > button b { font-weight: 400; color: var(--warm); }
-.pr-vibe-panel { padding: 1.1rem 0 0.3rem; }
-.pr-vibe-panel > div { margin-bottom: 1.1rem; }
-.pr-vibe-panel label { display: block; font-size: 0.72rem; color: var(--quieter); margin-bottom: 0.5rem; }
-.pr-vibe-panel .pr-chip { font-size: 0.8rem; padding: 0.35rem 0.7rem; }
-
-.pr-composer { position: sticky; bottom: 0; background: var(--ground); border-top: 1px solid var(--edge); padding: 0.9rem 0 1.4rem; margin-top: 2rem; }
-.pr-composer textarea { font-family: 'Instrument Sans', sans-serif; font-size: 0.95rem; line-height: 1.5; width: 100%; max-height: 9rem; background: transparent; color: var(--ink); border: 0; outline: none; resize: none; overflow-y: auto; padding: 0.3rem 0 0.7rem; }
-.pr-composer textarea::placeholder { color: var(--quieter); }
-
-.pr-bar { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; border-bottom: 1px solid var(--edge); padding-bottom: 1rem; }
-.pr-bar h2 { font-family: 'Newsreader', serif; font-weight: 400; font-size: 1.15rem; margin: 0; }
-.pr-bar h2 em { font-style: normal; display: block; font-family: 'Instrument Sans', sans-serif; font-size: 0.72rem; color: var(--quieter); margin-top: 0.25rem; }
-
-.pr-set { margin: 0 0 2.25rem; }
-.pr-set > label { display: block; font-size: 0.85rem; color: var(--quiet); margin-bottom: 0.7rem; }
-.pr-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.pr-chip { font: inherit; font-size: 0.85rem; cursor: pointer; background: none; color: var(--quiet); border: 1px solid var(--edge); border-radius: 2px; padding: 0.5rem 0.9rem; }
-.pr-chip[data-on="1"] { border-color: var(--warm); color: var(--warm); }
-.pr-chip:hover { color: var(--ink); }
-.pr-danger { color: var(--alarm); }
-:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
-
-@media (max-width: 480px) {
-  .pr-wrap { padding: 1.5rem 1.15rem 7rem; }
-  .pr-display { font-size: 1.8rem; }
-  .pr-ask { font-size: 1.35rem; }
-  .pr-said { font-size: 1.1rem; }
-  .pr-btn, .pr-btn-ghost { padding: 0.8rem 1.3rem; }
-  .pr-btn-bare { font-size: 0.85rem; padding: 0.5rem 0; }
-  .pr-mine { margin-left: 0.5rem; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pr-progress > i { transition: none; }
-  .pr-typing i { animation: none; opacity: 0.6; }
-}
-`;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -374,18 +243,26 @@ const gate = (t) => (TIER_ONE.some((r) => r.test(t)) ? "hold" : TIER_TWO.some((r
 
 /* ---------- model ---------- */
 
-const MODEL = "claude-sonnet-4-6";
 const WINDOW = 40;
 
+/* The passcode the deployment asks for, remembered per device. */
+const K_PASS = "presence:passcode";
+export const getPasscode = () => { try { return localStorage.getItem(K_PASS) || ""; } catch { return ""; } };
+export const setPasscode = (v) => { try { localStorage.setItem(K_PASS, v); } catch (e) { console.error(e); } };
+
+/* Every model call goes through /api/chat. The key lives on the server and
+   the browser never sees it. Errors are normalised to short codes so the UI
+   can say something true about each -- throwing "unavailable" for everything
+   is what made a dead model ID and a wrong passcode look identical. */
 async function ask(messages, system, maxTokens = 700) {
   const ctrl = new AbortController();
-  const bail = setTimeout(() => ctrl.abort(), 40000);
+  const bail = setTimeout(() => ctrl.abort(), 60000);
   let res;
   try {
-    res = await fetch("https://api.anthropic.com/v1/messages", {
+    res = await fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+      headers: { "Content-Type": "application/json", "x-presence-key": getPasscode() },
+      body: JSON.stringify({ max_tokens: maxTokens, system, messages }),
       signal: ctrl.signal,
     });
   } catch (e) {
@@ -393,9 +270,38 @@ async function ask(messages, system, maxTokens = 700) {
     throw new Error(e.name === "AbortError" ? "timeout" : "unavailable");
   }
   clearTimeout(bail);
-  if (!res.ok) throw new Error("unavailable");
+
+  if (res.status === 401) throw new Error("passcode");
+  if (res.status === 429) throw new Error("rate");
+  if (res.status === 404) throw new Error("no_function");
+  if (res.status === 413) throw new Error("too_long");
+  if (res.status === 504) throw new Error("timeout");
+  if (res.status === 503) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.error === "no_passcode" ? "no_passcode" : "no_key");
+  }
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try { const d = await res.json(); detail = d.detail || detail; } catch { /* keep the status */ }
+    throw new Error("upstream:" + detail);
+  }
+
   const data = await res.json();
-  return data.content.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+  return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+}
+
+/* One place that turns a code from ask() into something a person can act on. */
+export function faultOf(err, retry = null) {
+  const m = String(err?.message || err || "");
+  if (m === "passcode")    return { msg: "That passcode is not working any more.", retry: null, locked: true };
+  if (m === "no_passcode") return { msg: "This site is refusing requests because no passcode is set on it. Whoever deployed it needs to set PRESENCE_PASSCODE.", retry: null };
+  if (m === "no_key")      return { msg: "This site has no API key set. Whoever deployed it needs to add one and redeploy.", retry: null };
+  if (m === "no_function") return { msg: "The server function isn't responding. It may not have deployed with the site.", retry };
+  if (m === "rate")        return { msg: "That is a lot of messages in one hour. Give it a little while.", retry: null };
+  if (m === "too_long")    return { msg: "This conversation has got too long to send. Starting a fresh one will fix it.", retry: null };
+  if (m === "timeout")     return { msg: "That took too long to come back.", retry };
+  if (m.startsWith("upstream:")) return { msg: "The model refused that one: " + m.slice(9), retry };
+  return { msg: "Couldn't get through just now.", retry };
 }
 
 const MODES = {
@@ -711,8 +617,18 @@ function sampleWindows(messages, name, budget = 11000) {
 const K_STATE = "presence:state";
 const K_LOG = "presence:log";
 const SCHEMA = 4;
-const load = async (k) => { try { const r = await window.storage.get(k); return r ? JSON.parse(r.value) : null; } catch { return null; } };
-const save = async (k, v) => { try { await window.storage.set(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
+/* This app was written against a host that injected window.storage. In a
+   browser we back it with localStorage, keeping the same async shape so the
+   call sites below are unchanged. Every access is guarded: localStorage
+   throws outright in some privacy modes rather than returning null. */
+const storage = {
+  async get(k) { try { const v = localStorage.getItem(k); return v === null ? null : { value: v }; } catch { return null; } },
+  async set(k, v) { try { localStorage.setItem(k, v); } catch (e) { console.error(e); } },
+  async delete(k) { try { localStorage.removeItem(k); } catch (e) { console.error(e); } },
+};
+
+const load = async (k) => { try { const r = await storage.get(k); return r ? JSON.parse(r.value) : null; } catch { return null; } };
+const save = async (k, v) => { try { await storage.set(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
 
 /* ============================================================ */
 
@@ -727,8 +643,7 @@ class Guard extends React.Component {
     if (!this.state.err) return this.props.children;
     return (
       <div className="pr-root">
-        <style>{STYLES}</style>
-        <div className="pr-wrap">
+          <div className="pr-wrap">
           <p className="pr-mark">Presence</p>
           <h2 className="pr-ask">Something broke.</h2>
           <p className="pr-body">
@@ -740,7 +655,7 @@ class Guard extends React.Component {
           <div className="pr-row" style={{ marginTop: "2rem" }}>
             <button className="pr-btn" onClick={() => window.location.reload()}>Reload</button>
             <button className="pr-btn-ghost" onClick={async () => {
-              try { await window.storage.delete("presence:state"); await window.storage.delete("presence:log"); } catch (e) { console.error(e); }
+              try { await storage.delete("presence:state"); await storage.delete("presence:log"); } catch (e) { console.error(e); }
               window.location.reload();
             }}>Clear saved data and reload</button>
           </div>
@@ -763,6 +678,9 @@ function PresenceInner() {
   const [busy, setBusy] = useState(false);
   const [typing, setTyping] = useState(false);
   const [fault, setFault] = useState(null);
+  const [locked, setLocked] = useState(false);
+  const [passInput, setPassInput] = useState("");
+  const [checkingPass, setCheckingPass] = useState(false);
   const [tender, setTender] = useState(0);
   const [fixing, setFixing] = useState(null);
   const [fixText, setFixText] = useState("");
@@ -808,6 +726,53 @@ function PresenceInner() {
   const composer = useRef(null);
   const greeted = useRef(false);
 
+  /* One route for every model failure, so a wrong passcode, a missing key and
+     a rate limit each say their own thing instead of all reading "couldn't
+     get through". `override` keeps a caller's friendlier wording for the
+     generic case only. */
+  const showFault = useCallback((err, retry = null, override = null) => {
+    const f = faultOf(err, retry);
+    if (f.locked) setLocked(true);
+    setFault(override && f.msg === "Couldn't get through just now." ? { ...f, msg: override, retry } : f);
+  }, []);
+
+  /* Ask the server whether it wants a passcode before the first real message,
+     so people meet the gate on arrival rather than after composing something
+     and losing it. A ping costs nothing -- the function answers it without
+     calling the model. */
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-presence-key": getPasscode() },
+          body: JSON.stringify({ ping: true }),
+        });
+        if (live && r.status === 401) setLocked(true);
+      } catch { /* offline: let the first real message report it */ }
+    })();
+    return () => { live = false; };
+  }, []);
+
+  async function tryPasscode(e) {
+    e?.preventDefault?.();
+    const v = passInput.trim();
+    if (!v || checkingPass) return;
+    setCheckingPass(true);
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-presence-key": v },
+        body: JSON.stringify({ ping: true }),
+      });
+      if (r.ok) { setPasscode(v); setLocked(false); setPassInput(""); setFault(null); }
+      else if (r.status === 401) setFault({ msg: "That is not the passcode.", retry: null });
+      else showFault(new Error(r.status === 503 ? "no_key" : "unavailable"));
+    } catch { setFault({ msg: "Couldn't reach the server to check that.", retry: null }); }
+    setCheckingPass(false);
+  }
+
   /* rehydrate */
   useEffect(() => {
     (async () => {
@@ -825,7 +790,7 @@ function PresenceInner() {
   }, []);
 
   async function freshStart() {
-    try { await window.storage.delete(K_STATE); await window.storage.delete(K_LOG); } catch (e) { console.error(e); }
+    try { await storage.delete(K_STATE); await storage.delete(K_LOG); } catch (e) { console.error(e); }
     setStale(null); setPersona(null); setLog([]); setMemories([]); setBrief(""); setFault(null);
     setDraft({ them: "", relationship: "", you: "", callsYou: "", arch: "other", texture: "close", mode: null, consent: null, samples: "", prompts: {} });
     setParsed(null); setPicked(null); setParsing(""); setStep(0); setTender(0);
@@ -898,8 +863,8 @@ function PresenceInner() {
         const c = { every: cadence.every, paused: cadence.paused, last: Date.now() };
         setCadence(c);
         save(K_STATE, { v: SCHEMA, persona: p, memories: mems, cadence: c });
-      } catch {
-        setFault({ msg: "Couldn't get through just now.", retry: "checkin" });
+      } catch (err) {
+        showFault(err, "checkin");
       }
       setBusy(false);
     },
@@ -939,10 +904,13 @@ function PresenceInner() {
       setPersona({ ...src, brief: b });
       setView("review");
     } catch (err) {
+      const f = faultOf(err, "brief");
+      if (f.locked) setLocked(true);
       setFault({
+        ...f,
         msg: err.message === "timeout"
           ? "That took too long and the server gave up. Nothing you wrote was lost — try again, it is usually quicker the second time."
-          : "Couldn't build the profile. Nothing you wrote was lost.",
+          : f.msg === "Couldn't get through just now." ? "Couldn't build the profile. Nothing you wrote was lost." : f.msg,
         retry: "brief", payload: src,
       });
     }
@@ -960,8 +928,8 @@ function PresenceInner() {
           personaSystem(p, [], false, vibe), 300
         );
         await deliver(splitBurst(raw, REGISTERS[vibe.register]?.burst), []);
-      } catch {
-        setFault({ msg: "Couldn't get through. Try writing something.", retry: null });
+      } catch (err) {
+        showFault(err, null, "Couldn't get through. Try writing something.");
       }
       setBusy(false);
     }
@@ -991,10 +959,13 @@ function PresenceInner() {
         await deliver(splitBurst(raw, reg.burst), mine);
         setSaved(true);
       } catch (err) {
+        const f = faultOf(err, "send");
+        if (f.locked) setLocked(true);
         setFault({
+          ...f,
           msg: err.message === "timeout"
             ? "That took too long. Try again — a shorter message usually gets through."
-            : "Couldn't get through. Your message is still here.",
+            : f.msg === "Couldn't get through just now." ? "Couldn't get through. Your message is still here." : f.msg,
           retry: "send",
         });
       }
@@ -1017,8 +988,8 @@ function PresenceInner() {
         const reg = REGISTERS[vibe.register] || REGISTERS.texts;
         const raw = await ask(history(log), personaSystem(persona, memories, tender > 0, vibe), reg.tokens);
         await deliver(splitBurst(raw, reg.burst), log);
-      } catch {
-        setFault({ msg: "Still can't get through. It may be worth coming back later.", retry: "send" });
+      } catch (err) {
+        showFault(err, "send", "Still can't get through. It may be worth coming back later.");
       }
       setBusy(false);
     }
@@ -1040,8 +1011,8 @@ function PresenceInner() {
       const reg = REGISTERS[vibe.register] || REGISTERS.texts;
       const raw = await ask(history(trimmed), personaSystem(persona, nextMem, tender > 0, vibe), reg.tokens);
       await deliver(splitBurst(raw, reg.burst), trimmed);
-    } catch {
-      setFault({ msg: "Couldn't redo that one. The correction was saved.", retry: null });
+    } catch (err) {
+      showFault(err, null, "Couldn't redo that one. The correction was saved.");
     }
     setBusy(false);
   }
@@ -1061,7 +1032,7 @@ function PresenceInner() {
   }
 
   async function eraseAll() {
-    try { await window.storage.delete(K_STATE); await window.storage.delete(K_LOG); } catch (e) { console.error(e); }
+    try { await storage.delete(K_STATE); await storage.delete(K_LOG); } catch (e) { console.error(e); }
     setPersona(null); setLog([]); setMemories([]); setBrief(""); setFault(null);
     setDraft({ them: "", relationship: "", you: "", callsYou: "", arch: "other", texture: "close", mode: null, consent: null, samples: "", prompts: {} });
     setStep(0); setTender(0); greeted.current = false; setView("landing");
@@ -1073,11 +1044,50 @@ function PresenceInner() {
   const lastAt = log.length ? log[log.length - 1].at : 0;
 
   if (view === "loading")
-    return <div className="pr-root"><style>{STYLES}</style><div className="pr-wrap"><p className="pr-mark">Presence</p></div></div>;
+    return <div className="pr-root pr-boot"><div className="pr-wrap"><p className="pr-mark">Presence</p></div></div>;
+
+  if (locked) {
+    return (
+      <div className="pr-root">
+        <main className="pr-wrap pr-gate">
+          <p className="pr-mark">Presence</p>
+          <h1 className="pr-display">This one asks<br />for a passcode.</h1>
+          <p className="pr-body">
+            Whoever sent you the link will have it. It is remembered on this device, so you type it once.
+          </p>
+          <form className="pr-gate-form" onSubmit={tryPasscode}>
+            <label className="pr-lab" htmlFor="pr-pass">Passcode</label>
+            <input
+              id="pr-pass"
+              className="pr-in"
+              type="password"
+              autoFocus
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              value={passInput}
+              onChange={(e) => { setPassInput(e.target.value); if (fault) setFault(null); }}
+              aria-describedby={fault ? "pr-pass-err" : undefined}
+              aria-invalid={fault ? "true" : undefined}
+            />
+            <button className="pr-btn" type="submit" disabled={!passInput.trim() || checkingPass}>
+              {checkingPass ? "Checking…" : "Enter"}
+            </button>
+          </form>
+          {fault && <p className="pr-gate-err" id="pr-pass-err" role="alert">{fault.msg}</p>}
+          <hr className="pr-rule" />
+          <p className="pr-fine">
+            The passcode stops strangers using the site's model credit. It is not a password and it does not protect
+            your conversation, which is stored only in this browser.
+          </p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="pr-root">
-      <style>{STYLES}</style>
       <div className="pr-wrap">
 
         {view === "stale" && (
