@@ -37,6 +37,12 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
 details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:10px}
 .g label{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .chips button{border-radius:99px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center}.drop.over{border-color:var(--acc);background:var(--ok)}
+.lnk{color:var(--acc);font-weight:600;cursor:pointer;text-decoration:underline}
+.chk{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px}
+.chk.y{border-color:var(--acc);color:var(--oki)}.err{color:var(--nowi);font-size:13px;margin-top:6px}
+.today{border-left:5px solid var(--acc)}.today h2{font-size:17px}.today ul{margin:6px 0 0;padding-left:18px}
+#q{width:200px}details>summary .sn{font-weight:400}
 </style>
 </head>
 <body>
@@ -44,20 +50,20 @@ details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-col
 <h1>Reorder Desk</h1>
 <div class="mute">Freshroots demand planning. Recommends only: nothing here places a PO. Raghav approves or overrides every row.</div>
 
-<div class="card">
- <div class="row">
-  <button class="p" id="sample">Load sample data</button>
-  <label>Weekly sales <input type="file" id="f-sales" accept=".csv"></label>
-  <label>SKU master <input type="file" id="f-master" accept=".csv"></label>
-  <label>Inventory <input type="file" id="f-inv" accept=".csv"></label>
-  <label>Calendar <input type="file" id="f-cal" accept=".csv"></label>
+<details class="card" id="panel" open>
+ <summary>1. Your data <span class="sn" id="sum"></span></summary>
+ <div class="drop" id="drop" style="margin-top:10px">
+  Drop your CSV files here, or <label class="lnk">choose files<input type="file" id="files" accept=".csv" multiple hidden></label>
+  <div class="sn">Select all of them at once: weekly_sales, sku_master, current_inventory, calendar. They are matched by their column names, so file names don't matter.</div>
  </div>
+ <div class="row" style="margin-top:10px"><span id="status" class="row"></span><span class="grow"></span><button id="sample">Use the sample data instead</button></div>
+ <div class="err" id="err"></div>
  <div class="row" style="margin-top:10px">
   <span id="asof" class="mute"></span><span class="grow"></span>
-  <label><input type="checkbox" id="fest"> Festival uplift</label>
+  <label><input type="checkbox" id="fest"> Festival uplift (auto from calendar)</label>
  </div>
  <details style="margin-top:10px"><summary>Rules (Raghav's thresholds, editable)</summary><div class="g" id="rules"></div></details>
-</div>
+</details>
 
 <div id="app"></div>
 </div>
@@ -120,19 +126,39 @@ let D=null,R={...R0},festOv=null,filter='all',editing=new Set(),res=null;
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let decisions=store.get('rd-decisions',{});
 
-function loadSample(){D={sales:parseCSV(SAMPLE.sales),master:parseCSV(SAMPLE.master),inv:parseCSV(SAMPLE.inv),cal:parseCSV(SAMPLE.cal)};go()}
+const NEED={sales:['SKU_ID','Week','Units_Sold'],master:['SKU_ID','Perishability','Standard_Reorder_Qty'],inv:['SKU_ID','Units_On_Hand','As_Of_Date'],cal:['Year_Month','Is_Festival_Month']};
+const NAME={sales:'Weekly sales',master:'SKU master',inv:'Inventory',cal:'Calendar'};
+let src={},q='';
+const empty=()=>({sales:[],master:[],inv:[],cal:[]});
+function detect(rows){const h=Object.keys(rows[0]||{});return Object.keys(NEED).find(k=>NEED[k].every(c=>h.includes(c)))}
+function status(){
+  $('#status').innerHTML=Object.keys(NEED).map(k=>`<span class="chk ${D[k].length?'y':''}">${D[k].length?'✓':'○'} ${NAME[k]}${D[k].length?` · ${D[k].length} rows`:''}</span>`).join('');
+}
+async function ingest(files){
+  D=D||empty();const bad=[];
+  for(const f of files){let rows;try{rows=parseCSV(await f.text())}catch{rows=[]}
+    const k=detect(rows);if(k){D[k]=rows;src[k]=f.name}else bad.push(f.name)}
+  $('#err').textContent=bad.length?`Skipped (not one of the four needed files): ${bad.join(', ')}`:'';
+  status();go();
+}
+function loadSample(){D={sales:parseCSV(SAMPLE.sales),master:parseCSV(SAMPLE.master),inv:parseCSV(SAMPLE.inv),cal:parseCSV(SAMPLE.cal)};$('#err').textContent='';status();go()}
 $('#sample').onclick=loadSample;
-for(const [id,k] of [['f-sales','sales'],['f-master','master'],['f-inv','inv'],['f-cal','cal']])
-  $('#'+id).onchange=async e=>{const f=e.target.files[0];if(!f)return;D=D||{sales:[],master:[],inv:[],cal:[]};D[k]=parseCSV(await f.text());go()};
+$('#files').onchange=e=>ingest([...e.target.files]);
+const dz=$('#drop');
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('over')};dz.ondragleave=()=>dz.classList.remove('over');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');ingest([...e.dataTransfer.files])};
 $('#fest').onchange=e=>{festOv=e.target.checked;go()};
 $('#rules').innerHTML=Object.keys(R0).map(k=>`<label>${LABEL[k]}<input type="number" step="any" data-k="${k}" value="${R[k]}"></label>`).join('');
 $('#rules').oninput=e=>{const k=e.target.dataset.k,v=parseFloat(e.target.value);if(k&&!isNaN(v)){R[k]=v;go()}};
 
 function key(r){return res.asof+'|'+r.id}
 function go(){
-  if(!D||!D.sales.length||!D.master.length||!D.inv.length||!D.cal.length){$('#app').innerHTML='<div class="card mute">Load the sample data, or choose all four CSV files.</div>';return}
+  if(!D||!D.sales.length||!D.master.length||!D.inv.length||!D.cal.length){
+    const miss=D?Object.keys(NEED).filter(k=>!D[k].length).map(k=>NAME[k]):[];
+    $('#app').innerHTML='<div class="card mute">'+(miss.length?'Still needed: '+miss.join(', ')+'.':'Drop your CSV files above to see recommendations.')+'</div>';return}
   res=compute(D,R,festOv);
   if(festOv===null)$('#fest').checked=res.defaultFest;
+  const first=!$('#sum').textContent;$('#sum').textContent=`· ${res.rows.length} SKUs loaded`;if(first)$('#panel').open=false;
   $('#asof').textContent=`Stock as of ${res.asof}`+(res.fest?' · festival month: +'+Math.round((R.uplift-1)*100)+'% demand':'');
   render();
 }
@@ -155,8 +181,14 @@ function render(){
   const dec=rows.map(r=>decisions[key(r)]).filter(Boolean),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
   const needs=rows.filter(r=>r.flags.length).length,buy=rows.reduce((a,r)=>a+(r.call.startsWith('Reorder')?r.qty:0),0);
   const killed=dec.length>=5&&rate>0.4;
-  const shown=rows.filter(r=>filter==='all'||(filter==='flag'?r.flags.length:r.call===filter));
+  const shown=rows.filter(r=>(filter==='all'||(filter==='flag'?r.flags.length:r.call===filter))&&(!q||(r.id+' '+r.name).toLowerCase().includes(q)));
+  const now=rows.filter(r=>r.call==='Reorder now'||r.call==='Reorder 1.5x'),pz=rows.filter(r=>r.call==='Pause order');
   $('#app').innerHTML=`
+  <div class="card today"><h2>2. What to do today</h2>
+   ${now.length?`<b>Order ${now.length} SKU${now.length>1?'s':''} (${buy.toLocaleString()} units):</b><ul>${now.map(r=>`<li><b>${esc(r.id)}</b> ${esc(r.name)}: ${r.qty} units <span class="sn">(${esc(r.reason)})</span></li>`).join('')}</ul>`:'<b>Nothing needs ordering right now.</b>'}
+   ${pz.length?`<div style="margin-top:8px"><b>Hold off on ${pz.length}:</b> ${pz.map(r=>esc(r.id)).join(', ')} <span class="sn">(enough stock already)</span></div>`:''}
+   ${needs?`<div style="margin-top:8px;color:var(--revi)"><b>⚑ ${needs} need your judgment</b> before ordering.</div>`:''}
+   <div class="sn" style="margin-top:8px">Then go through the table below: Approve each row or Override it, and export the approved orders for procurement.</div></div>
   <div class="tiles">${ORDER.filter(c=>cnt[c]).map(c=>`<div class="tile b-${CLS[c]}"><b>${cnt[c]}</b>${c}</div>`).join('')}
    <div class="tile card" style="margin:0"><b>${buy.toLocaleString()}</b>units recommended</div>
    <div class="tile card" style="margin:0"><b>${needs}</b>need Raghav's judgment</div></div>
@@ -167,7 +199,7 @@ function render(){
    A high override rate means the rules are wrong, which is the real-world signal this tool is built to surface.</div></div>
   <div class="card"><div class="row chips" style="margin-bottom:8px">
    ${['all','flag',...ORDER].map(f=>`<button data-f="${f}" class="${filter===f?'on':''}">${f==='all'?'All':f==='flag'?'Needs Raghav':f}</button>`).join('')}
-   <span class="grow"></span><button data-act="approveAll">Approve all shown</button>
+   <input type="text" id="q" placeholder="Search SKU or name" value="${esc(q)}"><span class="grow"></span><button data-act="approveAll">Approve all shown</button>
    <button class="p" data-act="exportOrders">Export approved orders</button><button data-act="exportLog">Export decision log</button></div>
   <div class="wrap"><table><tr><th>SKU<th>Last 16 wks<th>On hand<th>Weeks cover (green = target)<th>Call<th>Qty<th>Why<th>Decision</tr>
   ${shown.map(r=>{const d=decisions[key(r)],ed=editing.has(r.id);return`<tr>
@@ -184,6 +216,7 @@ function render(){
   </table></div></div>`;
 }
 
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value.toLowerCase();const p=e.target.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(p,p)}});
 function csvOut(name,header,lines){
   const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v,
   b=new Blob([[header,...lines].map(l=>l.map(q).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');
