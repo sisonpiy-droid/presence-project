@@ -37,6 +37,13 @@ td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
 details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:10px}
 .g label{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .chips button{border-radius:99px}
+.tabs{display:flex;gap:6px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 14px;font-weight:600;color:var(--mute)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--acc);outline:0}.tabs small{display:block;font-weight:400;font-size:11px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.two .card{margin:0}
+.big{font-size:28px;font-weight:700;line-height:1.1}.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.lv{display:inline-block;width:18px;font-weight:700}.lv.ok{color:var(--oki)}.lv.warn{color:var(--x15i)}.lv.bad{color:var(--nowi)}
+.verd{padding:10px 12px;border-radius:8px;font-weight:600;margin-top:8px}ol.s{padding-left:20px;margin:6px 0}ol.s li{margin:5px 0}
 .drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center}.drop.over{border-color:var(--acc);background:var(--ok)}
 .lnk{color:var(--acc);font-weight:600;cursor:pointer;text-decoration:underline}
 .chk{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px}
@@ -65,6 +72,11 @@ details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-col
  <details style="margin-top:10px"><summary>Rules (Raghav's thresholds, editable)</summary><div class="g" id="rules"></div></details>
 </details>
 
+<div class="tabs" id="tabs">
+ <button data-v="raghav">Raghav<small>Planner: decide</small></button>
+ <button data-v="deepa">Deepa<small>Sponsor: outcome</small></button>
+ <button data-v="priya">Priya<small>Analyst: data feed</small></button>
+</div>
 <div id="app"></div>
 </div>
 
@@ -113,6 +125,36 @@ function compute(D,R,festOverride){
     asof=i.As_Of_Date;f=festOverride===null?!!fest[asof.slice(0,7)]:festOverride;
     rows.push(recommend(s,sales[s.SKU_ID],+i.Units_On_Hand,f,R))}
   return{rows,asof,fest:f,defaultFest:!!fest[asof.slice(0,7)]};
+}
+
+function isoWeek(d){d=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);
+  const y=d.getUTCFullYear(),w=Math.ceil(((d-Date.UTC(y,0,1))/864e5+1)/7);return y+'-W'+String(w).padStart(2,'0')}
+function validate(D,R,today){
+  const out=[],add=(lv,t)=>out.push({lv,t}),list=a=>a.slice(0,6).join(', ')+(a.length>6?` +${a.length-6} more`:'');
+  const ms=new Set(D.master.map(r=>r.SKU_ID)),ss=new Set(D.sales.map(r=>r.SKU_ID)),is=new Set(D.inv.map(r=>r.SKU_ID));
+  const noSales=[...ms].filter(x=>!ss.has(x)),noInv=[...ms].filter(x=>!is.has(x)),unk=[...new Set([...ss,...is])].filter(x=>!ms.has(x));
+  const miss=[];if(noSales.length)miss.push('sales ('+list(noSales)+')');if(noInv.length)miss.push('inventory ('+list(noInv)+')');
+  add(miss.length?'bad':'ok',miss.length?`SKUs in the master with no ${miss.join(' / ')}: they are skipped`:`All ${ms.size} master SKUs have sales and inventory`);
+  if(unk.length)add('warn',`In sales/inventory but not in the SKU master: ${list(unk)}`);
+  const badv=D.sales.filter(r=>r.Units_Sold===''||!(+r.Units_Sold>=0)).length+D.inv.filter(r=>r.Units_On_Hand===''||!(+r.Units_On_Hand>=0)).length;
+  add(badv?'bad':'ok',badv?`${badv} rows with blank, non-numeric or negative units`:'No blank or negative unit values');
+  const seen=new Set(),dup=[];D.sales.forEach(r=>{const k=r.SKU_ID+'|'+r.Week;if(seen.has(k))dup.push(k);seen.add(k)});
+  add(dup.length?'warn':'ok',dup.length?`${dup.length} duplicate SKU+week rows (e.g. ${list(dup)}): they would be double counted`:'No duplicate SKU+week rows');
+  const wk=[...new Set(D.sales.map(r=>r.Week))].sort(),last=wk[wk.length-1],per={};D.sales.forEach(r=>(per[r.SKU_ID]=per[r.SKU_ID]||[]).push(r.Week));
+  const stale=Object.keys(per).filter(k=>per[k].slice().sort().pop()!==last),short=Object.keys(per).filter(k=>per[k].length<R.hist),gap=Object.keys(per).filter(k=>per[k].length<wk.length&&!short.includes(k));
+  add(stale.length?'bad':'ok',stale.length?`Sales stop before ${last} for ${list(stale)}`:`All SKUs have sales through the latest week (${last})`);
+  if(gap.length)add('warn',`Missing weeks in the middle for ${list(gap)}`);
+  add(short.length?'warn':'ok',short.length?`Fewer than ${R.hist} weeks of history (treated as new launches, flagged to Raghav): ${list(short)}`:`Every SKU has at least ${R.hist} weeks of history`);
+  const asof=D.inv.length?D.inv[0].As_Of_Date:'',ad=new Date(asof+'T00:00:00Z');
+  if(!isNaN(ad)){
+    const age=Math.floor((today-ad)/864e5);
+    add(age<=4?'ok':age<=8?'warn':'bad',`Inventory is as of ${asof}, ${age} day${age===1?'':'s'} old${age<=4?'':' (the twice-weekly cycle needs fresh stock)'}`);
+    const exp=isoWeek(new Date(ad.getTime()-7*864e5));
+    add(last===exp?'ok':'warn',last===exp?`Latest sales week ${last} is the week just before the stock date`:`Latest sales week is ${last} but the stock date ${asof} follows ${exp}: sales and stock may be from different days`);
+    const hasCal=D.cal.some(r=>r.Year_Month===asof.slice(0,7));
+    add(hasCal?'ok':'bad',hasCal?`Calendar covers ${asof.slice(0,7)}`:`Calendar has no row for ${asof.slice(0,7)}: festival uplift will be off`);
+  }else add('bad','Inventory As_Of_Date is missing or not a date');
+  return out;
 }
 </script>
 
@@ -175,7 +217,7 @@ function bar(r){
   <circle cx="${Math.min(s(r.cover),W-4)}" cy="8" r="4.5" fill="var(--ink)"/></svg>`;
 }
 
-function render(){
+function renderRaghav(){
   const rows=res.rows.slice().sort((a,b)=>ORDER.indexOf(a.call)-ORDER.indexOf(b.call)||a.cover-b.cover);
   const cnt={};rows.forEach(r=>cnt[r.call]=(cnt[r.call]||0)+1);
   const dec=rows.map(r=>decisions[key(r)]).filter(Boolean),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
@@ -217,6 +259,75 @@ function render(){
 }
 
 document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value.toLowerCase();const p=e.target.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(p,p)}});
+let view='raghav',fin=store.get('rd-fin',{ss:20,wo:11,red:20,bud:15,as:'',aw:''});
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  ({raghav:renderRaghav,deepa:renderDeepa,priya:renderPriya})[view]();
+}
+const L=n=>'₹'+(Math.round(n*10)/10)+' lakh';
+function finHTML(){
+  const base=fin.ss+fin.wo,sv=base*fin.red/100,pb=sv>0?fin.bud/sv:0,has=fin.as!==''&&fin.aw!=='',act=has?+fin.as+ +fin.aw:0,ch=has&&base?(base-act)/base*100:0;
+  return`<div class="kv"><span>Baseline losses</span><b>${L(base)} / quarter</b></div>
+  <div class="kv"><span>Savings at ${fin.red}% reduction</span><b>${L(sv)} / quarter</b></div>
+  <div class="kv"><span>Budget of ${L(fin.bud)} pays back in</span><b>${sv?(pb<1?'under 1 quarter':pb.toFixed(1)+' quarters'):'n/a'}</b></div>
+  ${has?`<div class="verd" style="background:var(--${ch>=20?'ok':ch>0?'x15':'now'});color:var(--${ch>=20?'oki':ch>0?'x15i':'nowi'})">Actual: ${L(act)} vs baseline ${L(base)}: ${ch>=0?ch.toFixed(0)+'% lower':Math.abs(ch).toFixed(0)+'% higher'}. ${ch>=20?'Target (20-25%) met.':ch>0?'Improving, below the 20% target.':'No better than baseline: kill criterion triggered, redesign.'}</div>`:'<div class="sn" style="margin-top:8px">Enter last quarter\'s actual losses below once you have them.</div>'}`;
+}
+function renderDeepa(){
+  const rows=res.rows,dec=Object.values(decisions),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
+  const first=dec.length?Math.min(...dec.map(d=>Date.parse(d.at))):0,wks=first?Math.floor((Date.now()-first)/6048e5):0;
+  const so=rows.filter(r=>r.call==='Reorder now'||r.call==='Reorder 1.5x'),over=rows.filter(r=>r.call==='Pause order');
+  const pso=so.filter(r=>r.perish).length,pov=over.filter(r=>r.perish).length;
+  const bad=dec.length>=5&&rate>0.4;
+  const trial=dec.length<5?'Collecting decisions (need at least 5 to judge).':rate>0.4?(wks>=6?'STOP and redesign: override rate above 40% after 6 weeks.':'Warning: override rate above 40%. Judged at week 6.'):'On track: override rate within the 40% limit.';
+  $('#app').innerHTML=`<div class="card today"><h2>Is this working?</h2>
+   <div class="two" style="margin-top:8px">
+    <div><div class="sn">Override rate (limit 40%)</div><div class="big">${dec.length?Math.round(rate*100)+'%':'no data yet'}</div>
+     <div class="gauge"><i class="${bad?'bad':''}" style="width:${rate*100}%"></i><u style="left:40%"></u></div>
+     <div class="sn" style="margin-top:6px">${dec.length} decisions, ${ov} overridden · week ${wks+1} of the 6-week trial</div></div>
+    <div><div class="sn">Kill criterion</div><div class="verd" style="margin:4px 0 0;background:var(--${bad?'now':'ok'});color:var(--${bad?'nowi':'oki'})">${trial}</div></div></div></div>
+  <div class="two">
+   <div class="card"><h2>Right now, from the stock data</h2>
+    <div class="kv"><span>SKUs at stockout risk (reorder)</span><b>${so.length} of ${rows.length}</b></div>
+    <div class="kv"><span>...of which perishable</span><b>${pso}</b></div>
+    <div class="kv"><span>SKUs at overstock risk (pause)</span><b>${over.length}</b></div>
+    <div class="kv"><span>...of which perishable (write-off risk)</span><b>${pov}</b></div>
+    <div class="kv"><span>Need Raghav's judgment</span><b>${rows.filter(r=>r.flags.length).length}</b></div>
+    <div class="sn" style="margin-top:8px">Stockouts drive the ₹18-22 lakh/qtr lost sales; perishable overstock drives most of the ₹10-12 lakh write-offs.</div></div>
+   <div class="card"><h2>Money: baseline, target, payback</h2>
+    <div class="row" style="margin-bottom:8px"><label>Stockout loss ₹L/qtr <input type="number" data-d="ss" value="${fin.ss}"></label>
+     <label>Write-off ₹L/qtr <input type="number" data-d="wo" value="${fin.wo}"></label>
+     <label>Reduction % <input type="number" data-d="red" value="${fin.red}"></label>
+     <label>Budget ₹L <input type="number" data-d="bud" value="${fin.bud}"></label></div>
+    <div id="fin">${finHTML()}</div>
+    <div class="row" style="margin-top:10px"><label>Actual stockout loss ₹L <input type="number" data-d="as" value="${fin.as}"></label>
+     <label>Actual write-off ₹L <input type="number" data-d="aw" value="${fin.aw}"></label></div>
+    <div class="sn" style="margin-top:6px">Baselines are the midpoints of the case's ₹18-22 and ₹10-12 lakh ranges. Replace with your own numbers.</div></div>
+   <div class="card"><h2>Who does what</h2>
+    <div class="kv"><span>Raghav (Planner)</span><span>Approves or overrides every row</span></div>
+    <div class="kv"><span>Priya (Analyst)</span><span>Supplies the SAP exports, checks data</span></div>
+    <div class="kv"><span>Procurement</span><span>Orders only from the approved list</span></div>
+    <div class="kv"><span>Deepa (Sponsor)</span><span>Reviews this page weekly; owns the stop call</span></div></div>
+   <div class="card"><h2>Stop and redesign if</h2><ol class="s"><li>Override rate is above 40% after 6 weeks of runs</li>
+    <li>Losses are no better than baseline after one quarter</li><li>The SAP export cannot be made reliable</li></ol>
+    <div class="sn">A high override rate means the rules, not Raghav, are wrong.</div></div></div>`;
+}
+function renderPriya(){
+  const chk=validate(D,R,new Date()),bad=chk.filter(c=>c.lv==='bad').length,warn=chk.filter(c=>c.lv==='warn').length;
+  $('#app').innerHTML=`<div class="card today"><h2>Data check before each run</h2>
+   <div class="verd" style="margin:0 0 8px;background:var(--${bad?'now':warn?'x15':'ok'});color:var(--${bad?'nowi':warn?'x15i':'oki'})">${bad?bad+' problem'+(bad>1?'s':'')+' to fix before Raghav uses this run':warn?'Usable, '+warn+' thing'+(warn>1?'s':'')+' to look at':'All checks passed: ready for Raghav'}</div>
+   ${chk.map(c=>`<div class="kv"><span><span class="lv ${c.lv}">${c.lv==='ok'?'✓':c.lv==='warn'?'!':'✗'}</span>${esc(c.t)}</span></div>`).join('')}</div>
+  <div class="two"><div class="card"><h2>Twice-weekly routine (about 10 minutes)</h2><ol class="s">
+   <li>Export four files from SAP: weekly sales by SKU, SKU master, current stock, calendar.</li>
+   <li>Drop them into the data box at the top of this page.</li>
+   <li>Fix anything red above, then tell Raghav the run is ready.</li>
+   <li>Download the recommendations file below for the record.</li></ol>
+   <button class="p" data-act="exportRecs">Download full recommendations CSV</button></div>
+  <div class="card"><h2>Columns the files must have</h2>
+   ${Object.keys(NEED).map(k=>`<div class="kv"><span>${NAME[k]}</span><span class="sn">${NEED[k].join(', ')}</span></div>`).join('')}
+   <div class="sn" style="margin-top:8px">The distributor file is not needed. Extra columns are ignored.</div></div></div>`;
+}
+document.addEventListener('input',e=>{const k=e.target.dataset.d;if(!k)return;const v=e.target.value;fin[k]=v===''?'':parseFloat(v);if(fin[k]!==''&&isNaN(fin[k]))return;
+  ['ss','wo','red','bud'].forEach(x=>{if(fin[x]==='')fin[x]=0});store.set('rd-fin',fin);$('#fin').innerHTML=finHTML()});
 function csvOut(name,header,lines){
   const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v,
   b=new Blob([[header,...lines].map(l=>l.map(q).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');
@@ -224,6 +335,7 @@ function csvOut(name,header,lines){
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t||!res)return;
+  if(t.dataset.v){view=t.dataset.v;return render()}
   if(t.dataset.f){filter=t.dataset.f;return render()}
   const id=t.dataset.id,r=res.rows.find(x=>x.id===id),act=t.dataset.act;
   if(act==='approve')decisions[key(r)]={status:'approved',call:r.call,qty:r.qty,recCall:r.call,recQty:r.qty,at:new Date().toISOString()};
@@ -237,6 +349,8 @@ document.addEventListener('click',e=>{
     res.rows.filter(x=>{const d=decisions[key(x)];return d&&d.qty>0}).map(x=>[x.id,x.name,x.dist,decisions[key(x)].qty]))}
   else if(act==='exportLog'){return csvOut(`decision-log-${res.asof}.csv`,['As_Of','SKU_ID','Recommended','Rec_Qty','Status','Final_Call','Final_Qty','Note'],
     res.rows.filter(x=>decisions[key(x)]).map(x=>{const d=decisions[key(x)];return[res.asof,x.id,d.recCall,d.recQty,d.status,d.call,d.qty,d.note||'']}))}
+  else if(act==='exportRecs'){return csvOut(`recommendations-${res.asof}.csv`,['SKU_ID','SKU_Name','On_Hand','Avg_4wk','Avg_12wk','Weeks_Cover','Call','Reorder_Qty','Reason','Needs_Raghav'],
+    res.rows.map(x=>[x.id,x.name,x.onHand,x.avg4.toFixed(1),x.avg12.toFixed(1),x.cover.toFixed(1),x.call,x.qty,x.reason,x.flags.join('; ')]))}
   else return;
   store.set('rd-decisions',decisions);render();
 });
