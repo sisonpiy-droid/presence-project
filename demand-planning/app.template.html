@@ -83,6 +83,10 @@ details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-col
   <div class="sn">Select all of them at once: weekly_sales, sku_master, current_inventory, calendar. They are matched by their column names, so file names don't matter.</div>
  </div>
  <div class="row" style="margin-top:10px"><span id="status" class="row"></span><span class="grow"></span><button id="sample">Use the sample data instead</button></div>
+ <details style="margin-top:10px" id="cloudp"><summary>Cloud sync (Supabase) <span class="sn" id="cst"></span></summary>
+  <div class="row" style="margin-top:8px"><input type="text" id="cu" placeholder="https://your-project.supabase.co" style="flex:2;min-width:240px"><input type="password" id="ck" placeholder="anon public key" style="flex:3;min-width:240px">
+   <button class="p" id="cgo">Connect</button><button id="coff">Disconnect</button></div>
+  <div class="sn" style="margin-top:6px">Saves approvals, overrides and the loss inputs so everyone sees the same thing. Run supabase/schema.sql in your project's SQL editor first. Use the anon public key, never the service_role key.</div></details>
  <div class="err" id="err"></div>
  <div class="row" style="margin-top:10px">
   <span id="asof" class="mute"></span><span class="grow"></span>
@@ -175,6 +179,27 @@ function validate(D,R,today){
     add(hasCal?'ok':'bad',hasCal?`Calendar covers ${asof.slice(0,7)}`:`Calendar has no row for ${asof.slice(0,7)}: festival uplift will be off`);
   }else add('bad','Inventory As_Of_Date is missing or not a date');
   return out;
+}
+
+function makeCloud(fx){
+  const h=c=>({apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json'});
+  const u=(c,path)=>c.url.replace(/\/+$/,'')+'/rest/v1/'+path;
+  const ok=async r=>{if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,160));return r};
+  const merge=c=>({...h(c),Prefer:'resolution=merge-duplicates,return=minimal'});
+  const toRow=(k,d)=>({id:k,as_of:k.split('|')[0],sku_id:k.split('|')[1],status:d.status,final_call:d.call,final_qty:d.qty||0,rec_call:d.recCall||null,rec_qty:d.recQty==null?null:d.recQty,note:d.note||null,decided_at:d.at});
+  const fromRow=r=>({status:r.status,call:r.final_call,qty:r.final_qty,recCall:r.rec_call,recQty:r.rec_qty,note:r.note||undefined,at:r.decided_at});
+  return{
+    async load(c){const rows=await(await ok(await fx(u(c,'decisions?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.id,fromRow(r)]))},
+    async loadSetting(c,k){const rows=await(await ok(await fx(u(c,'app_settings?select=value&key=eq.'+encodeURIComponent(k)),{headers:h(c)}))).json();return rows[0]?rows[0].value:null},
+    async saveSetting(c,k,v){await ok(await fx(u(c,'app_settings?on_conflict=key'),{method:'POST',headers:merge(c),body:JSON.stringify({key:k,value:v})}))},
+    // writes only what differs from the last synced snapshot; returns the new snapshot
+    async flush(c,cur,snap){
+      const up=Object.keys(cur).filter(k=>JSON.stringify(cur[k])!==JSON.stringify(snap[k])),del=Object.keys(snap).filter(k=>!(k in cur));
+      if(up.length)await ok(await fx(u(c,'decisions?on_conflict=id'),{method:'POST',headers:merge(c),body:JSON.stringify(up.map(k=>toRow(k,cur[k])))}));
+      for(const k of del)await ok(await fx(u(c,'decisions?id=eq.'+encodeURIComponent(k)),{method:'DELETE',headers:h(c)}));
+      return JSON.parse(JSON.stringify(cur));
+    }
+  };
 }
 </script>
 
@@ -347,7 +372,7 @@ function renderPriya(){
    <div class="sn" style="margin-top:8px">The distributor file is not needed. Extra columns are ignored.</div></div></div>`;
 }
 document.addEventListener('input',e=>{const k=e.target.dataset.d;if(!k)return;const v=e.target.value;fin[k]=v===''?'':parseFloat(v);if(fin[k]!==''&&isNaN(fin[k]))return;
-  ['ss','wo','red','bud'].forEach(x=>{if(fin[x]==='')fin[x]=0});store.set('rd-fin',fin);$('#fin').innerHTML=finHTML()});
+  ['ss','wo','red','bud'].forEach(x=>{if(fin[x]==='')fin[x]=0});store.set('rd-fin',fin);$('#fin').innerHTML=finHTML();clearTimeout(finT);finT=setTimeout(()=>{if(cfg&&cstat==='on')cloud.saveSetting(cfg,'fin',fin).catch(()=>{})},700)});
 
 const CC={'Reorder now':'#e0525e','Review':'#9b7be0','Reorder 1.5x':'#e5a50a','Pause order':'#4a90d9','OK':'#34b37a'};
 const WHAT={'Reorder now':'stock is below the safe level','Reorder 1.5x':'demand is rising, order extra','Pause order':'plenty of stock, hold the next order','Review':'mixed signals, Raghav decides','OK':'nothing to do'};
@@ -423,6 +448,7 @@ function renderCommand(){
   const why=r=>r.call==='Pause order'?`${r.cover.toFixed(1)} weeks of stock, more than the ${r.hi} needed`:r.call==='Review'?esc(r.reason):`only ${r.cover.toFixed(1)} weeks of stock left, should be ${r.lo} to ${r.hi}`+(r.call==='Reorder 1.5x'||r.reason.includes('demand high')?', and demand is rising':'');
   $('#app').innerHTML=`<div class="hud">
   <div class="pn s12 chips2"><b>Today</b><span class="chip">Stock counted on ${esc(res.asof)}</span>${res.fest?`<span class="chip warn">Festival month: demand +${Math.round((R.uplift-1)*100)}%</span>`:''}
+    <span class="chip ${cstat==='on'?'good':cstat==='err'?'bad':''}" title="${esc(cerr)}">Cloud sync: ${cstat==='on'?'connected':cstat==='err'?'error':cstat==='connecting'?'connecting':'off'}</span>
     <button class="chip ${nb?'bad':nw?'warn':'good'}" data-v="priya">${nb?nb+' data problem'+(nb>1?'s':''):nw?nw+' data warning'+(nw>1?'s':''):'Data checks passed'}</button></div>
   <div class="kpis s12"><div class="pn kpi"><b>${toOrder.length}</b><span>products to order</span></div><div class="pn kpi"><b>${buy.toLocaleString()}</b><span>units to order in total</span></div>
     <div class="pn kpi"><b>${perish}</b><span>of them perishable (spoil fast)</span></div><div class="pn kpi"><b>${judge}</b><span>need Raghav's judgment</span></div></div>
@@ -438,6 +464,33 @@ function renderCommand(){
     <div class="stats"><div class="stat"><b>${L_(base)}</b><span>lost per quarter today</span></div><div class="stat"><b>${L_(sv)}</b><span>saved per quarter</span></div><div class="stat"><b>${pb?pb.toFixed(1)+' quarters':'n/a'}</b><span>to pay for itself</span></div></div>${payback()}</div>
   <div class="pn s12"><div class="pt">Which products are selling more or less than usual?</div><div class="pc">Each row is a product, each column a week. Orange means it sold more than its usual, blue means less. Look at the dashed box: a strong orange row there means demand just shifted, the kind of change a monthly review would miss.</div>${heat(rows,wk)}</div></div>`;
 }
+const cloud=makeCloud((...a)=>fetch(...a));
+let cfg=store.get('rd-cloud',null),snap={},cstat=cfg?'connecting':'off',cerr='',finT=0;
+function paintCloud(){
+  $('#cst').textContent=cstat==='on'?'· connected':cstat==='err'?'· error: '+cerr:cstat==='connecting'?'· connecting…':'· not connected';
+  if(cfg){$('#cu').value=cfg.url;$('#ck').value=cfg.key}
+}
+async function cloudSync(){
+  if(!cfg)return;cstat='connecting';paintCloud();
+  try{
+    const remote=await cloud.load(cfg);decisions={...decisions,...remote};
+    snap=await cloud.flush(cfg,decisions,JSON.parse(JSON.stringify(remote)));   // pushes anything that only exists locally
+    const f=await cloud.loadSetting(cfg,'fin');if(f)fin={...fin,...f};
+    store.set('rd-decisions',decisions);store.set('rd-fin',fin);cstat='on';cerr='';
+  }catch(e){cstat='err';cerr=e.message}
+  paintCloud();if(res)render();
+}
+async function cloudPush(){
+  if(!cfg||cstat!=='on')return;
+  try{snap=await cloud.flush(cfg,decisions,snap)}catch(e){cstat='err';cerr=e.message}
+  paintCloud();
+}
+$('#cgo').onclick=()=>{
+  const url=$('#cu').value.trim(),key=$('#ck').value.trim();
+  if(!/^https:\/\/[^\s/]+/.test(url)||key.length<20){cstat='err';cerr='enter the https project URL and the anon key';return paintCloud()}
+  cfg={url,key};store.set('rd-cloud',cfg);cloudSync();
+};
+$('#coff').onclick=()=>{cfg=null;snap={};cstat='off';try{localStorage.removeItem('rd-cloud')}catch{}$('#cu').value='';$('#ck').value='';paintCloud();if(res)render()};
 function csvOut(name,header,lines){
   const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v,
   b=new Blob([[header,...lines].map(l=>l.map(q).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');
@@ -463,9 +516,9 @@ document.addEventListener('click',e=>{
   else if(act==='exportRecs'){return csvOut(`recommendations-${res.asof}.csv`,['SKU_ID','SKU_Name','On_Hand','Avg_4wk','Avg_12wk','Weeks_Cover','Call','Reorder_Qty','Reason','Needs_Raghav'],
     res.rows.map(x=>[x.id,x.name,x.onHand,x.avg4.toFixed(1),x.avg12.toFixed(1),x.cover.toFixed(1),x.call,x.qty,x.reason,x.flags.join('; ')]))}
   else return;
-  store.set('rd-decisions',decisions);render();
+  store.set('rd-decisions',decisions);render();cloudPush();
 });
-loadSample();
+loadSample();paintCloud();if(cfg)cloudSync();
 </script>
 </body>
 </html>
