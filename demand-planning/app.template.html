@@ -101,6 +101,7 @@ details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-col
  <button data-v="deepa">Deepa<small>Sponsor: outcome</small></button>
  <button data-v="priya">Priya<small>Analyst: data feed</small></button>
 </div>
+<div id="cbar" class="sn" style="margin-top:10px"></div>
 <div id="app"></div>
 </div>
 
@@ -479,24 +480,29 @@ function renderCommand(){
   <div class="pn s12"><div class="pt">Which products are selling more or less than usual?</div><div class="pc">Each row is a product, each column a week. Orange means it sold more than its usual, blue means less. Look at the dashed box: a strong orange row there means demand just shifted, the kind of change a monthly review would miss.</div>${heat(rows,wk)}</div></div>`;
 }
 const cloud=makeCloud((...a)=>fetch(...a));
-let cfg=store.get('rd-cloud',null),snap={},cstat=cfg?'connecting':'off',cerr='',finT=0;
+let cfg=store.get('rd-cloud',null),snap={},cstat=cfg?'connecting':'off',cerr='',finT=0,csaved='';
 function paintCloud(){
   $('#cst').textContent=cstat==='on'?'· connected':cstat==='err'?'· error: '+cerr:cstat==='connecting'?'· connecting…':'· not connected';
   if(cfg){$('#cu').value=cfg.url;$('#ck').value=cfg.key}
+  const bar=$('#cbar');
+  bar.innerHTML=!cfg?'':cstat==='err'?`<span style="color:var(--nowi)"><b>Cloud sync error:</b> ${esc(cerr)}</span> <button id="cretry">Retry</button>`
+    :cstat==='connecting'?'Cloud sync: connecting…':`Cloud sync: connected${csaved?' · last saved '+csaved:' · nothing saved yet'}`;
+  const r=$('#cretry');if(r)r.onclick=()=>cfg&&(cstat==='err'&&!snapOk?cloudSync():cloudPush(true));
 }
+let snapOk=false;
 async function cloudSync(){
   if(!cfg)return;cstat='connecting';paintCloud();
   try{
     const remote=await cloud.load(cfg);decisions={...decisions,...remote};
     snap=await cloud.flush(cfg,decisions,JSON.parse(JSON.stringify(remote)));   // pushes anything that only exists locally
     const f=await cloud.loadSetting(cfg,'fin');if(f)fin={...fin,...f};
-    store.set('rd-decisions',decisions);store.set('rd-fin',fin);cstat='on';cerr='';
+    store.set('rd-decisions',decisions);store.set('rd-fin',fin);cstat='on';cerr='';snapOk=true;
   }catch(e){cstat='err';cerr=e.message}
   paintCloud();if(res)render();
 }
-async function cloudPush(){
-  if(!cfg||cstat!=='on')return;
-  try{snap=await cloud.flush(cfg,decisions,snap)}catch(e){cstat='err';cerr=e.message}
+async function cloudPush(force){
+  if(!cfg||cstat==='connecting'||(!snapOk&&!force))return;
+  try{snap=await cloud.flush(cfg,decisions,snap);cstat='on';cerr='';csaved=new Date().toLocaleTimeString()}catch(e){cstat='err';cerr=e.message}
   paintCloud();
 }
 $('#cgo').onclick=()=>{
