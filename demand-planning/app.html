@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freshroots Reorder Desk</title>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--ink:#1b1f1d;--mute:#667069;--line:#e2e6e2;--acc:#1f6f4a;
+--now:#fde3e3;--nowi:#b42318;--x15:#fff1cc;--x15i:#8a5a00;--pause:#dce9f9;--pausei:#1b4f91;--rev:#e8e0f7;--revi:#5b3fa0;--ok:#e3f3e8;--oki:#1f6f4a}
+@media(prefers-color-scheme:dark){:root{--bg:#121513;--card:#1b1f1d;--ink:#e8ece9;--mute:#9aa59d;--line:#2c332f;--acc:#4cc38a;
+--now:#4a1f1f;--nowi:#ff9b94;--x15:#4a3a12;--x15i:#ffd37a;--pause:#1c3350;--pausei:#9cc4f5;--rev:#34295a;--revi:#c9b8f5;--ok:#1b3a28;--oki:#7fdba8}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,sans-serif}
+.w{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 2px}h2{font-size:15px;margin:0 0 10px}.mute{color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.grow{flex:1}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 11px;cursor:pointer}
+button:hover{border-color:var(--acc)}button.p{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.on{outline:2px solid var(--acc)}
+input[type=number],input[type=text],select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+input[type=number]{width:70px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tile{border-radius:9px;padding:10px 12px}.tile b{font-size:24px;display:block;line-height:1.1}
+.gauge{height:10px;border-radius:5px;background:var(--line);position:relative;margin-top:8px;overflow:hidden}
+.gauge i{position:absolute;left:0;top:0;bottom:0;background:var(--acc)}.gauge i.bad{background:var(--nowi)}
+.gauge u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}
+th{font-size:12px;color:var(--mute);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.badge{display:inline-block;border-radius:6px;padding:2px 8px;font-weight:600;white-space:nowrap}
+.b-now{background:var(--now);color:var(--nowi)}.b-x15{background:var(--x15);color:var(--x15i)}.b-pause{background:var(--pause);color:var(--pausei)}
+.b-rev{background:var(--rev);color:var(--revi)}.b-ok{background:var(--ok);color:var(--oki)}
+.flag{font-size:12px;color:var(--revi);margin-top:2px}.sn{font-size:12px;color:var(--mute)}
+.st{font-size:12px;font-weight:600}.st.a{color:var(--oki)}.st.o{color:var(--x15i)}
+.ed{background:var(--bg);padding:8px;border-radius:8px;margin-top:6px}.ed>*{margin:2px 4px 2px 0}
+details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:10px}
+.g label{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.chips button{border-radius:99px}
+.tabs{display:flex;gap:6px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 14px;font-weight:600;color:var(--mute)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--acc);outline:0}.tabs small{display:block;font-weight:400;font-size:11px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px}.two>*{min-width:0}.two .card{margin:0}
+.big{font-size:28px;font-weight:700;line-height:1.1}.kv{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.lv{display:inline-block;width:18px;font-weight:700}.lv.ok{color:var(--oki)}.lv.warn{color:var(--x15i)}.lv.bad{color:var(--nowi)}
+.verd{padding:10px 12px;border-radius:8px;font-weight:600;margin-top:8px}ol.s{padding-left:20px;margin:6px 0}ol.s li{margin:5px 0}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center}.drop.over{border-color:var(--acc);background:var(--ok)}
+.lnk{color:var(--acc);font-weight:600;cursor:pointer;text-decoration:underline}
+.chk{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px}
+.chk.y{border-color:var(--acc);color:var(--oki)}.err{color:var(--nowi);font-size:13px;margin-top:6px}
+.today{border-left:5px solid var(--acc)}.today h2{font-size:17px}.today ul{margin:6px 0 0;padding-left:18px}
+#q{width:200px}details>summary .sn{font-weight:400}
+
+.pn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.pt{font-weight:700;font-size:15px}.pc{font-size:13px;color:var(--mute);margin:2px 0 12px}
+.hud{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px;align-items:start}
+@media(min-width:1000px){.hud{grid-template-columns:repeat(12,1fr)}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:1/-1}}
+.pn svg{display:block;width:100%;height:auto}
+.chips2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.chip{border:1px solid var(--line);border-radius:99px;padding:3px 12px;font-size:13px;background:var(--bg)}
+.chip.good{color:var(--oki);border-color:var(--oki)}.chip.warn{color:var(--x15i);border-color:var(--x15i)}.chip.bad{color:var(--nowi);border-color:var(--nowi)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.kpi b{display:block;font-size:32px;font-weight:700;line-height:1.1}.kpi span{font-size:13px;color:var(--mute)}
+.gl{margin:6px 0 0;padding:0;list-style:none;font-size:13px}.gl li{display:flex;gap:8px;align-items:baseline;padding:3px 0}
+.gl i{width:11px;height:11px;border-radius:3px;flex:none;position:relative;top:1px}.gl b{min-width:22px}.gl span{color:var(--mute)}
+.it{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 2px}
+.it:hover{background:var(--bg)}.it .dot{width:11px;height:11px;border-radius:50%;margin-top:5px;flex:none}.it b{display:block}.it .sub{font-size:13px;color:var(--mute)}
+.svt{font:11px system-ui,sans-serif;fill:var(--mute)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}.stat b{display:block;font-size:24px;line-height:1.15}.stat span{font-size:12.5px;color:var(--mute)}
+.ob-track{position:relative;height:16px;border-radius:8px;background:linear-gradient(90deg,var(--ok) 40%,var(--now) 40%);margin:12px 0 6px;overflow:hidden}
+.ob-track i{position:absolute;left:0;top:0;bottom:0;border-radius:8px}.ob-track u{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);left:40%}
+.ob-l{position:relative;height:16px;font-size:12px;color:var(--mute)}.ob-l span{position:absolute;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>Freshroots Reorder Desk</h1>
+<div class="mute">Freshroots demand planning. Recommends only: nothing here places a PO. Raghav approves or overrides every row.</div>
+
+<details class="card" id="panel" open>
+ <summary>1. Your data <span class="sn" id="sum"></span></summary>
+ <div class="drop" id="drop" style="margin-top:10px">
+  Drop your CSV files here, or <label class="lnk">choose files<input type="file" id="files" accept=".csv" multiple hidden></label>
+  <div class="sn">Select all of them at once: weekly_sales, sku_master, current_inventory, calendar. They are matched by their column names, so file names don't matter.</div>
+ </div>
+ <div class="row" style="margin-top:10px"><span id="status" class="row"></span><span class="grow"></span><button id="sample">Use the sample data instead</button></div>
+ <details style="margin-top:10px" id="cloudp"><summary>Cloud sync (Supabase) <span class="sn" id="cst"></span></summary>
+  <div class="row" style="margin-top:8px"><input type="text" id="cu" placeholder="https://your-project.supabase.co" style="flex:2;min-width:240px"><input type="password" id="ck" placeholder="anon public key" style="flex:3;min-width:240px">
+   <button class="p" id="cgo">Connect</button><button id="coff">Disconnect</button><button id="cload">Load data from Supabase</button></div>
+  <div class="sn" style="margin-top:6px">Saves approvals, overrides and the loss inputs so everyone sees the same thing. Run supabase/schema.sql in your project's SQL editor first. Use the anon public key, never the service_role key.</div></details>
+ <div class="err" id="err"></div>
+ <div class="row" style="margin-top:10px">
+  <span id="asof" class="mute"></span><span class="grow"></span>
+  <label><input type="checkbox" id="fest"> Festival uplift (auto from calendar)</label>
+ </div>
+ <details style="margin-top:10px"><summary>Rules (Raghav's thresholds, editable)</summary><div class="g" id="rules"></div></details>
+</details>
+
+<div class="tabs" id="tabs">
+ <button data-v="command">Overview<small>Start here</small></button>
+ <button data-v="raghav">Raghav<small>Planner: decide</small></button>
+ <button data-v="deepa">Deepa<small>Sponsor: outcome</small></button>
+ <button data-v="priya">Priya<small>Analyst: data feed</small></button>
+</div>
+<div id="cbar" class="sn" style="margin-top:10px"></div>
+<div id="app"></div>
+</div>
+
+<script id="core">
+const R0={hd:1.2,mult:1.5,uplift:1.25,loMin:6,loMax:14,hiMin:3,hiMax:4,drop:0.8,hist:12};
+const LABEL={hd:'High-demand: last 4 wks vs 12-wk avg (x)',mult:'High-demand reorder multiplier',uplift:'Festival demand uplift (x)',
+loMin:'Normal SKU min weeks cover',loMax:'Normal SKU max weeks cover',hiMin:'Perishable min weeks cover',hiMax:'Perishable max weeks cover',
+drop:'Sharp-drop flag below (x of 12-wk avg)',hist:'Min weeks of history'};
+
+function parseCSV(t){
+  const rows=[];let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}
+    else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';if(r.length>1||r[0]!=='')rows.push(r);r=[]}
+    else c+=ch}
+  if(c!==''||r.length){r.push(c);rows.push(r)}
+  const h=rows.shift().map(s=>s.trim());
+  return rows.map(r=>Object.fromEntries(h.map((k,i)=>[k,(r[i]||'').trim()])));
+}
+
+function recommend(sku,weekly,onHand,fest,R){
+  const l12=weekly.slice(-12),l4=weekly.slice(-4),avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const avg12=avg(l12),avg4=avg(l4),adj=avg12*(fest?R.uplift:1),cover=onHand/adj;
+  const perish=sku.Perishability==='High',lo=perish?R.hiMin:R.loMin,hi=perish?R.hiMax:R.loMax;
+  const stockout=cover<lo,over=cover>hi,high=avg4>R.hd*avg12,std=+sku.Standard_Reorder_Qty,flags=[];
+  let call,qty,reason;
+  if(over&&high){call='Review';qty=0;reason=`Conflict: overstock (${cover.toFixed(1)} wks > ${hi}) but demand rising`;flags.push('conflicting signals')}
+  else if(stockout){qty=high?Math.trunc(std*R.mult):std;call='Reorder now';reason=`Cover ${cover.toFixed(1)} wks < ${lo}`+(high?` and demand high: ${R.mult}x`:'')}
+  else if(high){call='Reorder 1.5x';qty=Math.trunc(std*R.mult);reason=`Last 4 wks ${((avg4/avg12-1)*100).toFixed(0)}% vs 12-wk avg`}
+  else if(over){call='Pause order';qty=0;reason=`Cover ${cover.toFixed(1)} wks > ${hi}`}
+  else{call='OK';qty=0;reason=`Cover ${cover.toFixed(1)} wks within ${lo}-${hi}`}
+  if(avg4<R.drop*avg12)flags.push('sharp drop: competitor scheme?');
+  if(weekly.length<R.hist)flags.push('short history: new launch?');
+  return{id:sku.SKU_ID,name:sku.SKU_Name,dist:sku.Distributor_ID,perish,onHand,avg4,avg12,cover,lo,hi,call,qty,reason,flags,weekly};
+}
+
+function compute(D,R,festOverride){
+  const sales={};
+  D.sales.slice().sort((a,b)=>a.SKU_ID<b.SKU_ID?-1:a.SKU_ID>b.SKU_ID?1:a.Week<b.Week?-1:1)
+    .forEach(r=>(sales[r.SKU_ID]=sales[r.SKU_ID]||[]).push(+r.Units_Sold));
+  const inv=Object.fromEntries(D.inv.map(r=>[r.SKU_ID,r]));
+  const fest=Object.fromEntries(D.cal.map(r=>[r.Year_Month,r.Is_Festival_Month.toUpperCase()==='TRUE']));
+  const rows=[];let asof='',f=false;
+  for(const s of D.master){const i=inv[s.SKU_ID];if(!i||!sales[s.SKU_ID])continue;
+    asof=i.As_Of_Date;f=festOverride===null?!!fest[asof.slice(0,7)]:festOverride;
+    rows.push(recommend(s,sales[s.SKU_ID],+i.Units_On_Hand,f,R))}
+  return{rows,asof,fest:f,defaultFest:!!fest[asof.slice(0,7)]};
+}
+
+function isoWeek(d){d=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);
+  const y=d.getUTCFullYear(),w=Math.ceil(((d-Date.UTC(y,0,1))/864e5+1)/7);return y+'-W'+String(w).padStart(2,'0')}
+function validate(D,R,today){
+  const out=[],add=(lv,t)=>out.push({lv,t}),list=a=>a.slice(0,6).join(', ')+(a.length>6?` +${a.length-6} more`:'');
+  const ms=new Set(D.master.map(r=>r.SKU_ID)),ss=new Set(D.sales.map(r=>r.SKU_ID)),is=new Set(D.inv.map(r=>r.SKU_ID));
+  const noSales=[...ms].filter(x=>!ss.has(x)),noInv=[...ms].filter(x=>!is.has(x)),unk=[...new Set([...ss,...is])].filter(x=>!ms.has(x));
+  const miss=[];if(noSales.length)miss.push('sales ('+list(noSales)+')');if(noInv.length)miss.push('inventory ('+list(noInv)+')');
+  add(miss.length?'bad':'ok',miss.length?`SKUs in the master with no ${miss.join(' / ')}: they are skipped`:`All ${ms.size} master SKUs have sales and inventory`);
+  if(unk.length)add('warn',`In sales/inventory but not in the SKU master: ${list(unk)}`);
+  const badv=D.sales.filter(r=>r.Units_Sold===''||!(+r.Units_Sold>=0)).length+D.inv.filter(r=>r.Units_On_Hand===''||!(+r.Units_On_Hand>=0)).length;
+  add(badv?'bad':'ok',badv?`${badv} rows with blank, non-numeric or negative units`:'No blank or negative unit values');
+  const seen=new Set(),dup=[];D.sales.forEach(r=>{const k=r.SKU_ID+'|'+r.Week;if(seen.has(k))dup.push(k);seen.add(k)});
+  add(dup.length?'warn':'ok',dup.length?`${dup.length} duplicate SKU+week rows (e.g. ${list(dup)}): they would be double counted`:'No duplicate SKU+week rows');
+  const wk=[...new Set(D.sales.map(r=>r.Week))].sort(),last=wk[wk.length-1],per={};D.sales.forEach(r=>(per[r.SKU_ID]=per[r.SKU_ID]||[]).push(r.Week));
+  const stale=Object.keys(per).filter(k=>per[k].slice().sort().pop()!==last),short=Object.keys(per).filter(k=>per[k].length<R.hist),gap=Object.keys(per).filter(k=>per[k].length<wk.length&&!short.includes(k));
+  add(stale.length?'bad':'ok',stale.length?`Sales stop before ${last} for ${list(stale)}`:`All SKUs have sales through the latest week (${last})`);
+  if(gap.length)add('warn',`Missing weeks in the middle for ${list(gap)}`);
+  add(short.length?'warn':'ok',short.length?`Fewer than ${R.hist} weeks of history (treated as new launches, flagged to Raghav): ${list(short)}`:`Every SKU has at least ${R.hist} weeks of history`);
+  const asof=D.inv.length?D.inv[0].As_Of_Date:'',ad=new Date(asof+'T00:00:00Z');
+  if(!isNaN(ad)){
+    const age=Math.floor((today-ad)/864e5);
+    add(age<=4?'ok':age<=8?'warn':'bad',`Inventory is as of ${asof}, ${age} day${age===1?'':'s'} old${age<=4?'':' (the twice-weekly cycle needs fresh stock)'}`);
+    const exp=isoWeek(new Date(ad.getTime()-7*864e5));
+    add(last===exp?'ok':'warn',last===exp?`Latest sales week ${last} is the week just before the stock date`:`Latest sales week is ${last} but the stock date ${asof} follows ${exp}: sales and stock may be from different days`);
+    const hasCal=D.cal.some(r=>r.Year_Month===asof.slice(0,7));
+    add(hasCal?'ok':'bad',hasCal?`Calendar covers ${asof.slice(0,7)}`:`Calendar has no row for ${asof.slice(0,7)}: festival uplift will be off`);
+  }else add('bad','Inventory As_Of_Date is missing or not a date');
+  return out;
+}
+
+// One Zoho purchase order per approved (or overridden) order. Always a draft: procurement issues it in Zoho.
+function buildPO(r,d,zm,k){
+  const m=zm[r.id]||{},w=[];
+  if(!m.zoho_item_id)w.push('No Zoho item mapped for '+r.id);
+  if(!m.zoho_vendor_id)w.push('No Zoho vendor mapped for '+r.id+' ('+r.dist+')');
+  return{decision_id:k,sku_id:r.id,distributor_id:r.dist,quantity:d.qty,status:'dry_run',warnings:w,
+    payload:{vendor_id:m.zoho_vendor_id||null,date:(d.at||'').slice(0,10),reference_number:k,
+      notes:'Reorder Desk. '+(d.status==='approved'?'Approved':'Overridden')+' by Raghav.'+(d.note?' '+d.note:''),
+      line_items:[{item_id:m.zoho_item_id||null,name:r.name,quantity:d.qty,...(m.rate!=null&&m.rate!==''?{rate:+m.rate}:{})}]}};
+}
+// What must change so purchase orders match decisions: create/refresh, delete dry runs, ask to void real drafts.
+function reconcilePOs(rows,decisions,zm,pos,asof){
+  const byId=Object.fromEntries(rows.map(r=>[r.id,r])),up=[],rm=[],vd=[],pre=asof+'|';
+  for(const k of Object.keys(decisions).filter(k=>k.startsWith(pre))){
+    const d=decisions[k],r=byId[k.slice(pre.length)];
+    if(!r||!(d.qty>0))continue;
+    const po=buildPO(r,d,zm,k),old=pos[k];
+    if(!old||old.quantity!==po.quantity||JSON.stringify(old.payload)!==JSON.stringify(po.payload)||JSON.stringify(old.warnings)!==JSON.stringify(po.warnings))up.push(po);
+  }
+  for(const k of Object.keys(pos).filter(k=>k.startsWith(pre))){
+    const d=decisions[k];
+    if(d&&d.qty>0)continue;
+    if(pos[k].status==='dry_run')rm.push(k);else if(pos[k].status==='draft_created')vd.push(k);
+  }
+  return{up,rm,vd};
+}
+
+function makeCloud(fx){
+  const h=c=>({apikey:c.key,...(c.key.startsWith('sb_')?{}:{Authorization:'Bearer '+c.key}),'Content-Type':'application/json'});  // new sb_publishable_ keys are not JWTs: apikey header only
+  const u=(c,path)=>c.url.replace(/\/+$/,'')+'/rest/v1/'+path;
+  const ok=async r=>{if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,160));return r};
+  const merge=c=>({...h(c),Prefer:'resolution=merge-duplicates,return=minimal'});
+  const toRow=(k,d)=>({id:k,as_of:k.split('|')[0],sku_id:k.split('|')[1],status:d.status,final_call:d.call,final_qty:d.qty||0,rec_call:d.recCall||null,rec_qty:d.recQty==null?null:d.recQty,note:d.note||null,decided_at:d.at});
+  const fromRow=r=>({status:r.status,call:r.final_call,qty:r.final_qty,recCall:r.rec_call,recQty:r.rec_qty,note:r.note||undefined,at:r.decided_at});
+  return{
+    async load(c){const rows=await(await ok(await fx(u(c,'decisions?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.id,fromRow(r)]))},
+    async loadSetting(c,k){const rows=await(await ok(await fx(u(c,'app_settings?select=value&key=eq.'+encodeURIComponent(k)),{headers:h(c)}))).json();return rows[0]?rows[0].value:null},
+    async all(c,t,order){
+      let out=[],from=0;
+      for(;;){const r=await ok(await fx(u(c,t+'?select=*&order='+order),{headers:{...h(c),'Range-Unit':'items',Range:`${from}-${from+999}`}}));
+        const rows=await r.json();out=out.concat(rows);if(rows.length<1000)return out;from+=1000}
+    },
+    // same shape as the CSV files, so compute() does not care where the data came from
+    async loadData(c){
+      const[m,s,i,k]=await Promise.all([this.all(c,'sku_master','sku_id'),this.all(c,'weekly_sales','sku_id,week'),this.all(c,'current_inventory','sku_id'),this.all(c,'calendar','year_month')]);
+      const S=v=>String(v);
+      return{master:m.map(r=>({SKU_ID:r.sku_id,SKU_Name:r.sku_name,Category:r.category,Perishability:r.perishability,Standard_Reorder_Qty:S(r.standard_reorder_qty),Unit_of_Measure:r.unit_of_measure,Distributor_ID:r.distributor_id})),
+        sales:s.map(r=>({SKU_ID:r.sku_id,Week:r.week,Units_Sold:S(r.units_sold)})),
+        inv:i.map(r=>({SKU_ID:r.sku_id,Location:r.location,Units_On_Hand:S(r.units_on_hand),As_Of_Date:r.as_of_date})),
+        cal:k.map(r=>({Year:S(r.year),Month:S(r.month),Year_Month:r.year_month,Is_Festival_Month:r.is_festival_month?'TRUE':'FALSE'}))};
+    },
+    async loadZmap(c){const rows=await(await ok(await fx(u(c,'zoho_map?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.sku_id,r]))},
+    async loadPOs(c){const rows=await(await ok(await fx(u(c,'purchase_orders?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.decision_id,r]))},
+    // upsert sends only these columns, so Zoho fields written by the live integration are never overwritten
+    async savePOs(c,list){await ok(await fx(u(c,'purchase_orders?on_conflict=decision_id'),{method:'POST',headers:merge(c),
+      body:JSON.stringify(list.map(p=>({decision_id:p.decision_id,sku_id:p.sku_id,distributor_id:p.distributor_id,quantity:p.quantity,status:p.status,payload:p.payload,warnings:p.warnings})))}))},
+    async deletePOs(c,ids){await ok(await fx(u(c,'purchase_orders?decision_id=in.'+encodeURIComponent('('+ids.map(i=>'"'+i+'"').join(',')+')')),{method:'DELETE',headers:h(c)}))},
+    async voidPOs(c,ids){await ok(await fx(u(c,'purchase_orders?decision_id=in.'+encodeURIComponent('('+ids.map(i=>'"'+i+'"').join(',')+')')),{method:'PATCH',headers:h(c),body:JSON.stringify({status:'void_requested'})}))},
+    async saveSetting(c,k,v){await ok(await fx(u(c,'app_settings?on_conflict=key'),{method:'POST',headers:merge(c),body:JSON.stringify({key:k,value:v})}))},
+    // writes only what differs from the last synced snapshot; returns the new snapshot
+    async flush(c,cur,snap){
+      const up=Object.keys(cur).filter(k=>JSON.stringify(cur[k])!==JSON.stringify(snap[k])),del=Object.keys(snap).filter(k=>!(k in cur));
+      if(up.length)await ok(await fx(u(c,'decisions?on_conflict=id'),{method:'POST',headers:merge(c),body:JSON.stringify(up.map(k=>toRow(k,cur[k])))}));
+      for(const k of del)await ok(await fx(u(c,'decisions?id=eq.'+encodeURIComponent(k)),{method:'DELETE',headers:h(c)}));
+      return JSON.parse(JSON.stringify(cur));
+    }
+  };
+}
+</script>
+
+<script>
+const SAMPLE={"sales": "SKU_ID,Week,Units_Sold\nSKU001,2026-W27,194\nSKU001,2026-W28,188\nSKU001,2026-W29,204\nSKU001,2026-W30,186\nSKU001,2026-W31,201\nSKU001,2026-W32,195\nSKU001,2026-W33,185\nSKU001,2026-W34,200\nSKU001,2026-W35,185\nSKU001,2026-W36,197\nSKU001,2026-W37,186\nSKU001,2026-W38,186\nSKU001,2026-W39,261\nSKU001,2026-W40,267\nSKU001,2026-W41,257\nSKU001,2026-W42,259\nSKU002,2026-W27,86\nSKU002,2026-W28,91\nSKU002,2026-W29,86\nSKU002,2026-W30,83\nSKU002,2026-W31,91\nSKU002,2026-W32,78\nSKU002,2026-W33,89\nSKU002,2026-W34,82\nSKU002,2026-W35,80\nSKU002,2026-W36,79\nSKU002,2026-W37,82\nSKU002,2026-W38,89\nSKU002,2026-W39,80\nSKU002,2026-W40,86\nSKU002,2026-W41,86\nSKU002,2026-W42,83\nSKU003,2026-W27,151\nSKU003,2026-W28,139\nSKU003,2026-W29,139\nSKU003,2026-W30,142\nSKU003,2026-W31,154\nSKU003,2026-W32,148\nSKU003,2026-W33,145\nSKU003,2026-W34,152\nSKU003,2026-W35,148\nSKU003,2026-W36,145\nSKU003,2026-W37,157\nSKU003,2026-W38,154\nSKU003,2026-W39,143\nSKU003,2026-W40,151\nSKU003,2026-W41,150\nSKU003,2026-W42,159\nSKU004,2026-W27,82\nSKU004,2026-W28,77\nSKU004,2026-W29,86\nSKU004,2026-W30,75\nSKU004,2026-W31,78\nSKU004,2026-W32,83\nSKU004,2026-W33,75\nSKU004,2026-W34,79\nSKU004,2026-W35,74\nSKU004,2026-W36,82\nSKU004,2026-W37,83\nSKU004,2026-W38,80\nSKU004,2026-W39,84\nSKU004,2026-W40,77\nSKU004,2026-W41,82\nSKU004,2026-W42,81\nSKU005,2026-W27,60\nSKU005,2026-W28,59\nSKU005,2026-W29,63\nSKU005,2026-W30,64\nSKU005,2026-W31,59\nSKU005,2026-W32,61\nSKU005,2026-W33,55\nSKU005,2026-W34,61\nSKU005,2026-W35,61\nSKU005,2026-W36,64\nSKU005,2026-W37,63\nSKU005,2026-W38,57\nSKU005,2026-W39,58\nSKU005,2026-W40,61\nSKU005,2026-W41,55\nSKU005,2026-W42,59\nSKU006,2026-W27,37\nSKU006,2026-W28,37\nSKU006,2026-W29,37\nSKU006,2026-W30,41\nSKU006,2026-W31,37\nSKU006,2026-W32,38\nSKU006,2026-W33,39\nSKU006,2026-W34,42\nSKU006,2026-W35,37\nSKU006,2026-W36,39\nSKU006,2026-W37,40\nSKU006,2026-W38,42\nSKU006,2026-W39,42\nSKU006,2026-W40,42\nSKU006,2026-W41,38\nSKU006,2026-W42,39\nSKU007,2026-W27,117\nSKU007,2026-W28,127\nSKU007,2026-W29,128\nSKU007,2026-W30,113\nSKU007,2026-W31,113\nSKU007,2026-W32,114\nSKU007,2026-W33,114\nSKU007,2026-W34,119\nSKU007,2026-W35,121\nSKU007,2026-W36,115\nSKU007,2026-W37,110\nSKU007,2026-W38,118\nSKU007,2026-W39,131\nSKU007,2026-W40,133\nSKU007,2026-W41,136\nSKU007,2026-W42,134\nSKU008,2026-W27,110\nSKU008,2026-W28,112\nSKU008,2026-W29,113\nSKU008,2026-W30,102\nSKU008,2026-W31,117\nSKU008,2026-W32,114\nSKU008,2026-W33,116\nSKU008,2026-W34,115\nSKU008,2026-W35,108\nSKU008,2026-W36,108\nSKU008,2026-W37,103\nSKU008,2026-W38,112\nSKU008,2026-W39,102\nSKU008,2026-W40,102\nSKU008,2026-W41,104\nSKU008,2026-W42,104\nSKU009,2026-W27,34\nSKU009,2026-W28,32\nSKU009,2026-W29,32\nSKU009,2026-W30,33\nSKU009,2026-W31,32\nSKU009,2026-W32,34\nSKU009,2026-W33,32\nSKU009,2026-W34,37\nSKU009,2026-W35,35\nSKU009,2026-W36,33\nSKU009,2026-W37,33\nSKU009,2026-W38,34\nSKU009,2026-W39,34\nSKU009,2026-W40,32\nSKU009,2026-W41,36\nSKU009,2026-W42,37\nSKU010,2026-W27,24\nSKU010,2026-W28,24\nSKU010,2026-W29,23\nSKU010,2026-W30,23\nSKU010,2026-W31,24\nSKU010,2026-W32,24\nSKU010,2026-W33,26\nSKU010,2026-W34,23\nSKU010,2026-W35,23\nSKU010,2026-W36,26\nSKU010,2026-W37,25\nSKU010,2026-W38,23\nSKU010,2026-W39,25\nSKU010,2026-W40,23\nSKU010,2026-W41,25\nSKU010,2026-W42,26\nSKU011,2026-W27,211\nSKU011,2026-W28,206\nSKU011,2026-W29,192\nSKU011,2026-W30,195\nSKU011,2026-W31,189\nSKU011,2026-W32,208\nSKU011,2026-W33,201\nSKU011,2026-W34,208\nSKU011,2026-W35,194\nSKU011,2026-W36,191\nSKU011,2026-W37,209\nSKU011,2026-W38,215\nSKU011,2026-W39,211\nSKU011,2026-W40,209\nSKU011,2026-W41,210\nSKU011,2026-W42,207\nSKU012,2026-W27,52\nSKU012,2026-W28,55\nSKU012,2026-W29,53\nSKU012,2026-W30,50\nSKU012,2026-W31,50\nSKU012,2026-W32,53\nSKU012,2026-W33,52\nSKU012,2026-W34,56\nSKU012,2026-W35,59\nSKU012,2026-W36,54\nSKU012,2026-W37,58\nSKU012,2026-W38,59\nSKU012,2026-W39,62\nSKU012,2026-W40,60\nSKU012,2026-W41,59\nSKU012,2026-W42,59\nSKU013,2026-W27,42\nSKU013,2026-W28,42\nSKU013,2026-W29,45\nSKU013,2026-W30,47\nSKU013,2026-W31,47\nSKU013,2026-W32,44\nSKU013,2026-W33,46\nSKU013,2026-W34,47\nSKU013,2026-W35,42\nSKU013,2026-W36,46\nSKU013,2026-W37,47\nSKU013,2026-W38,47\nSKU013,2026-W39,46\nSKU013,2026-W40,44\nSKU013,2026-W41,42\nSKU013,2026-W42,47\nSKU014,2026-W27,68\nSKU014,2026-W28,73\nSKU014,2026-W29,75\nSKU014,2026-W30,68\nSKU014,2026-W31,68\nSKU014,2026-W32,75\nSKU014,2026-W33,72\nSKU014,2026-W34,66\nSKU014,2026-W35,65\nSKU014,2026-W36,66\nSKU014,2026-W37,74\nSKU014,2026-W38,73\nSKU014,2026-W39,75\nSKU014,2026-W40,78\nSKU014,2026-W41,79\nSKU014,2026-W42,78\nSKU015,2026-W27,29\nSKU015,2026-W28,30\nSKU015,2026-W29,28\nSKU015,2026-W30,27\nSKU015,2026-W31,32\nSKU015,2026-W32,30\nSKU015,2026-W33,30\nSKU015,2026-W34,32\nSKU015,2026-W35,29\nSKU015,2026-W36,31\nSKU015,2026-W37,31\nSKU015,2026-W38,28\nSKU015,2026-W39,28\nSKU015,2026-W40,29\nSKU015,2026-W41,28\nSKU015,2026-W42,30\n", "master": "SKU_ID,SKU_Name,Category,Perishability,Standard_Reorder_Qty,Unit_of_Measure,Distributor_ID\nSKU001,Freshroots Mango Drink 200ml,Beverage,Low,500,Units,DIST001\nSKU002,Freshroots Oats Cookies 150g,Snack,Low,200,Units,DIST001\nSKU003,Freshroots Brown Rice 1kg,Staple,Low,300,Units,DIST002\nSKU004,Freshroots Almond Milk 500ml,Dairy Alt,High,150,Units,DIST002\nSKU005,Freshroots Mixed Nuts 100g,Snack,Low,150,Units,DIST003\nSKU006,Freshroots Quinoa 500g,Staple,Low,100,Units,DIST003\nSKU007,Freshroots Coconut Water 330ml,Beverage,High,400,Units,DIST001\nSKU008,Freshroots Granola Bar 40g,Snack,Low,300,Units,DIST002\nSKU009,Freshroots Chia Seeds 200g,Staple,Low,80,Units,DIST003\nSKU010,Freshroots Apple Cider Vinegar 500ml,Condiment,Low,60,Units,DIST004\nSKU011,Freshroots Multigrain Bread 400g,Staple,High,500,Units,DIST004\nSKU012,Freshroots Herbal Tea 25 bags,Beverage,Low,150,Units,DIST004\nSKU013,Freshroots Peanut Butter 300g,Condiment,Low,120,Units,DIST001\nSKU014,Freshroots Dark Chocolate 80g,Snack,Low,200,Units,DIST002\nSKU015,Freshroots Honey 500g,Condiment,Low,80,Units,DIST003\n", "inv": "SKU_ID,Location,Units_On_Hand,As_Of_Date\nSKU001,Pune Central Warehouse,900,2026-10-19\nSKU002,Pune Central Warehouse,1200,2026-10-19\nSKU003,Pune Central Warehouse,820,2026-10-19\nSKU004,Pune Central Warehouse,180,2026-10-19\nSKU005,Pune Central Warehouse,600,2026-10-19\nSKU006,Pune Central Warehouse,1100,2026-10-19\nSKU007,Pune Central Warehouse,620,2026-10-19\nSKU008,Pune Central Warehouse,950,2026-10-19\nSKU009,Pune Central Warehouse,400,2026-10-19\nSKU010,Pune Central Warehouse,260,2026-10-19\nSKU011,Pune Central Warehouse,460,2026-10-19\nSKU012,Pune Central Warehouse,480,2026-10-19\nSKU013,Pune Central Warehouse,180,2026-10-19\nSKU014,Pune Central Warehouse,620,2026-10-19\nSKU015,Pune Central Warehouse,360,2026-10-19\n", "cal": "Year,Month,Year_Month,Is_Festival_Month\n2025,1,2025-01,FALSE\n2025,2,2025-02,FALSE\n2025,3,2025-03,TRUE\n2025,4,2025-04,FALSE\n2025,5,2025-05,FALSE\n2025,6,2025-06,FALSE\n2025,7,2025-07,FALSE\n2025,8,2025-08,FALSE\n2025,9,2025-09,FALSE\n2025,10,2025-10,TRUE\n2025,11,2025-11,TRUE\n2025,12,2025-12,FALSE\n2026,1,2026-01,FALSE\n2026,2,2026-02,FALSE\n2026,3,2026-03,TRUE\n2026,4,2026-04,FALSE\n2026,5,2026-05,FALSE\n2026,6,2026-06,FALSE\n2026,7,2026-07,FALSE\n2026,8,2026-08,FALSE\n2026,9,2026-09,FALSE\n2026,10,2026-10,TRUE\n2026,11,2026-11,TRUE\n2026,12,2026-12,FALSE\n"};
+const ORDER=['Reorder now','Review','Reorder 1.5x','Pause order','OK'];
+const CLS={'Reorder now':'now','Review':'rev','Reorder 1.5x':'x15','Pause order':'pause','OK':'ok'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let D=null,R={...R0},festOv=null,filter='all',editing=new Set(),res=null;
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let decisions=store.get('rd-decisions',{});
+
+const NEED={sales:['SKU_ID','Week','Units_Sold'],master:['SKU_ID','Perishability','Standard_Reorder_Qty'],inv:['SKU_ID','Units_On_Hand','As_Of_Date'],cal:['Year_Month','Is_Festival_Month']};
+const NAME={sales:'Weekly sales',master:'SKU master',inv:'Inventory',cal:'Calendar'};
+let src={},q='';
+const empty=()=>({sales:[],master:[],inv:[],cal:[]});
+function detect(rows){const h=Object.keys(rows[0]||{});return Object.keys(NEED).find(k=>NEED[k].every(c=>h.includes(c)))}
+function status(){
+  $('#status').innerHTML=Object.keys(NEED).map(k=>`<span class="chk ${D[k].length?'y':''}">${D[k].length?'✓':'○'} ${NAME[k]}${D[k].length?` · ${D[k].length} rows`:''}</span>`).join('');
+}
+async function ingest(files){
+  D=D||empty();const bad=[];
+  for(const f of files){let rows;try{rows=parseCSV(await f.text())}catch{rows=[]}
+    const k=detect(rows);if(k){D[k]=rows;src[k]=f.name}else bad.push(f.name)}
+  $('#err').textContent=bad.length?`Skipped (not one of the four needed files): ${bad.join(', ')}`:'';
+  status();go();
+}
+function loadSample(){D={sales:parseCSV(SAMPLE.sales),master:parseCSV(SAMPLE.master),inv:parseCSV(SAMPLE.inv),cal:parseCSV(SAMPLE.cal)};$('#err').textContent='';status();go()}
+$('#sample').onclick=loadSample;
+$('#files').onchange=e=>ingest([...e.target.files]);
+const dz=$('#drop');
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('over')};dz.ondragleave=()=>dz.classList.remove('over');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');ingest([...e.dataTransfer.files])};
+$('#fest').onchange=e=>{festOv=e.target.checked;go()};
+$('#rules').innerHTML=Object.keys(R0).map(k=>`<label>${LABEL[k]}<input type="number" step="any" data-k="${k}" value="${R[k]}"></label>`).join('');
+$('#rules').oninput=e=>{const k=e.target.dataset.k,v=parseFloat(e.target.value);if(k&&!isNaN(v)){R[k]=v;go()}};
+
+function key(r){return res.asof+'|'+r.id}
+function go(){
+  if(!D||!D.sales.length||!D.master.length||!D.inv.length||!D.cal.length){
+    const miss=D?Object.keys(NEED).filter(k=>!D[k].length).map(k=>NAME[k]):[];
+    $('#app').innerHTML='<div class="card mute">'+(miss.length?'Still needed: '+miss.join(', ')+'.':'Drop your CSV files above to see recommendations.')+'</div>';return}
+  res=compute(D,R,festOv);
+  if(festOv===null)$('#fest').checked=res.defaultFest;
+  const first=!$('#sum').textContent;$('#sum').textContent=`· ${res.rows.length} SKUs loaded`;if(first)$('#panel').open=false;
+  $('#asof').textContent=`Stock as of ${res.asof}`+(res.fest?' · festival month: +'+Math.round((R.uplift-1)*100)+'% demand':'');
+  render();
+}
+
+function spark(w){
+  const W=96,H=24,mx=Math.max(...w),mn=Math.min(...w),y=v=>H-2-(mx===mn?H/2-2:(v-mn)/(mx-mn)*(H-4)),x=i=>i/(w.length-1)*W;
+  const p=w.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`),k=p.slice(-4).join(' ');
+  return`<svg width="${W}" height="${H}"><polyline points="${p.join(' ')}" fill="none" stroke="var(--mute)" stroke-width="1.2"/><polyline points="${k}" fill="none" stroke="var(--acc)" stroke-width="2"/></svg>`;
+}
+function bar(r){
+  const W=130,mx=Math.max(r.hi*1.6,r.cover*1.1),s=v=>v/mx*W;
+  return`<svg width="${W}" height="16"><rect x="0" y="5" width="${W}" height="6" rx="3" fill="var(--line)"/>
+  <rect x="${s(r.lo)}" y="3" width="${s(r.hi)-s(r.lo)}" height="10" rx="2" fill="var(--ok)"/>
+  <circle cx="${Math.min(s(r.cover),W-4)}" cy="8" r="4.5" fill="var(--ink)"/></svg>`;
+}
+
+function renderRaghav(){
+  const rows=res.rows.slice().sort((a,b)=>ORDER.indexOf(a.call)-ORDER.indexOf(b.call)||a.cover-b.cover);
+  const cnt={};rows.forEach(r=>cnt[r.call]=(cnt[r.call]||0)+1);
+  const dec=rows.map(r=>decisions[key(r)]).filter(Boolean),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
+  const needs=rows.filter(r=>r.flags.length).length,buy=rows.reduce((a,r)=>a+(r.call.startsWith('Reorder')?r.qty:0),0);
+  const killed=dec.length>=5&&rate>0.4;
+  const shown=rows.filter(r=>(filter==='all'||(filter==='flag'?r.flags.length:r.call===filter))&&(!q||(r.id+' '+r.name).toLowerCase().includes(q)));
+  const now=rows.filter(r=>r.call==='Reorder now'||r.call==='Reorder 1.5x'),pz=rows.filter(r=>r.call==='Pause order');
+  $('#app').innerHTML=`
+  <div class="card today"><h2>2. What to do today</h2>
+   ${now.length?`<b>Order ${now.length} SKU${now.length>1?'s':''} (${buy.toLocaleString()} units):</b><ul>${now.map(r=>`<li><b>${esc(r.id)}</b> ${esc(r.name)}: ${r.qty} units <span class="sn">(${esc(r.reason)})</span></li>`).join('')}</ul>`:'<b>Nothing needs ordering right now.</b>'}
+   ${pz.length?`<div style="margin-top:8px"><b>Hold off on ${pz.length}:</b> ${pz.map(r=>esc(r.id)).join(', ')} <span class="sn">(enough stock already)</span></div>`:''}
+   ${needs?`<div style="margin-top:8px;color:var(--revi)"><b>⚑ ${needs} need your judgment</b> before ordering.</div>`:''}
+   <div class="sn" style="margin-top:8px">Then go through the table below: Approve each row or Override it. Every approved order becomes a draft purchase order for Zoho (a dry run until Zoho is connected).</div></div>
+  <div class="tiles">${ORDER.filter(c=>cnt[c]).map(c=>`<div class="tile b-${CLS[c]}"><b>${cnt[c]}</b>${c}</div>`).join('')}
+   <div class="tile card" style="margin:0"><b>${buy.toLocaleString()}</b>units recommended</div>
+   <div class="tile card" style="margin:0"><b>${needs}</b>need Raghav's judgment</div></div>
+  <div class="card"><div class="row"><h2 class="grow" style="margin:0">Override rate (kill criterion: stop and redesign above 40%)</h2>
+   <b>${dec.length?Math.round(rate*100)+'%':'no decisions yet'}</b></div>
+   <div class="gauge"><i class="${killed?'bad':''}" style="width:${rate*100}%"></i><u style="left:40%"></u></div>
+   <div class="sn" style="margin-top:6px">${dec.length} of ${rows.length} rows decided · ${ov} overridden.${killed?' <b style="color:var(--nowi)">Over 40%: the rules need redesign, not more runs.</b>':''}
+   A high override rate means the rules are wrong, which is the real-world signal this tool is built to surface.</div></div>
+  <div class="card"><div class="row chips" style="margin-bottom:8px">
+   ${['all','flag',...ORDER].map(f=>`<button data-f="${f}" class="${filter===f?'on':''}">${f==='all'?'All':f==='flag'?'Needs Raghav':f}</button>`).join('')}
+   <input type="text" id="q" placeholder="Search SKU or name" value="${esc(q)}"><span class="grow"></span><button data-act="approveAll">Approve all shown</button>
+   <button class="p" data-act="exportOrders">Export approved orders</button><button data-act="exportLog">Export decision log</button></div>
+  <div class="wrap"><table><tr><th>SKU<th>Last 16 wks<th>On hand<th>Weeks cover (green = target)<th>Call<th>Qty<th>Why<th>Decision</tr>
+  ${shown.map(r=>{const d=decisions[key(r)],ed=editing.has(r.id);return`<tr>
+   <td><b>${esc(r.id)}</b>${r.perish?' <span class="sn">perishable</span>':''}<div class="sn">${esc(r.name)}</div></td>
+   <td>${spark(r.weekly)}</td><td>${r.onHand.toLocaleString()}</td>
+   <td>${bar(r)}<div class="sn">${r.cover.toFixed(1)} wks · target ${r.lo}-${r.hi}</div></td>
+   <td><span class="badge b-${CLS[r.call]}">${r.call}</span></td><td>${r.qty||''}</td>
+   <td>${esc(r.reason)}${r.flags.map(f=>`<div class="flag">⚑ ${esc(f)}</div>`).join('')}</td>
+   <td>${d?`<span class="st ${d.status==='approved'?'a':'o'}">${d.status==='approved'?'Approved':'Overridden: '+esc(d.call)+(d.call.startsWith('Reorder')?' '+d.qty:'')}</span>${d.note?`<div class="sn">${esc(d.note)}</div>`:''}<div><button data-act="undo" data-id="${r.id}">Undo</button></div>`
+     :`<button data-act="approve" data-id="${r.id}">Approve</button> <button data-act="edit" data-id="${r.id}">Override</button>`}
+    ${ed&&!d?`<div class="ed"><select id="c-${r.id}">${ORDER.filter(c=>c!=='Review').map(c=>`<option${c===r.call?' selected':''}>${c}</option>`).join('')}</select>
+     <input type="number" id="q-${r.id}" value="${r.qty}" min="0"><input type="text" id="n-${r.id}" placeholder="Why? (optional)">
+     <button class="p" data-act="saveOv" data-id="${r.id}">Save</button></div>`:''}</td></tr>`}).join('')}
+  </table></div></div>
+  ${poCard()}`;
+}
+function poCard(){
+  const list=poList(),warn=list.filter(p=>p.warnings&&p.warnings.length).length;
+  return`<div class="card"><div class="row"><h2 class="grow" style="margin:0">Draft purchase orders for Zoho</h2><button data-act="exportPOs"${list.length?'':' disabled'}>Download PO payloads (JSON)</button></div>
+  <div class="sn" style="margin:6px 0 10px">Every approval creates one draft purchase order for procurement to check and issue in Zoho. Zoho is not connected yet, so these are <b>dry runs</b>: the exact order that would be created, with nothing sent.</div>
+  ${zerr?`<div class="err">Could not read the Zoho mapping from Supabase: ${esc(zerr)}. Run supabase/po.sql in the SQL editor.</div>`:''}
+  ${warn?`<div class="verd" style="background:var(--x15);color:var(--x15i)">${warn} of ${list.length} orders cannot go to Zoho yet: fill in the Zoho item and vendor IDs in the <b>zoho_map</b> table in Supabase.</div>`:''}
+  ${list.length?`<table><tr><th>SKU<th>Vendor<th>Qty<th>Status<th>Notes</tr>${list.map(p=>`<tr><td><b>${esc(p.sku_id)}</b><div class="sn">${esc(p.payload.line_items[0].name)}</div></td><td>${esc(p.distributor_id)}</td><td>${p.quantity}</td>
+    <td><span class="badge b-x15">${p.status==='dry_run'?'Dry run: not sent':esc(p.status)}</span></td><td class="sn">${(p.warnings||[]).map(esc).join('<br>')||'Ready'}</td></tr>`).join('')}</table>`:'<div class="sn">No orders yet. Approve a row that has a quantity to create one.</div>'}</div>`;
+}
+
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value.toLowerCase();const p=e.target.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(p,p)}});
+let view='command',fin=store.get('rd-fin',{ss:20,wo:11,red:20,bud:15,as:'',aw:''});
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  ({command:renderCommand,raghav:renderRaghav,deepa:renderDeepa,priya:renderPriya})[view]();
+}
+const L=n=>'₹'+(Math.round(n*10)/10)+' lakh';
+function finHTML(){
+  const base=fin.ss+fin.wo,sv=base*fin.red/100,pb=sv>0?fin.bud/sv:0,has=fin.as!==''&&fin.aw!=='',act=has?+fin.as+ +fin.aw:0,ch=has&&base?(base-act)/base*100:0;
+  return`<div class="kv"><span>Baseline losses</span><b>${L(base)} / quarter</b></div>
+  <div class="kv"><span>Savings at ${fin.red}% reduction</span><b>${L(sv)} / quarter</b></div>
+  <div class="kv"><span>Budget of ${L(fin.bud)} pays back in</span><b>${sv?(pb<1?'under 1 quarter':pb.toFixed(1)+' quarters'):'n/a'}</b></div>
+  ${has?`<div class="verd" style="background:var(--${ch>=20?'ok':ch>0?'x15':'now'});color:var(--${ch>=20?'oki':ch>0?'x15i':'nowi'})">Actual: ${L(act)} vs baseline ${L(base)}: ${ch>=0?ch.toFixed(0)+'% lower':Math.abs(ch).toFixed(0)+'% higher'}. ${ch>=20?'Target (20-25%) met.':ch>0?'Improving, below the 20% target.':'No better than baseline: kill criterion triggered, redesign.'}</div>`:'<div class="sn" style="margin-top:8px">Enter last quarter\'s actual losses below once you have them.</div>'}`;
+}
+function renderDeepa(){
+  const rows=res.rows,dec=Object.values(decisions),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
+  const first=dec.length?Math.min(...dec.map(d=>Date.parse(d.at))):0,wks=first?Math.floor((Date.now()-first)/6048e5):0;
+  const so=rows.filter(r=>r.call==='Reorder now'||r.call==='Reorder 1.5x'),over=rows.filter(r=>r.call==='Pause order');
+  const pso=so.filter(r=>r.perish).length,pov=over.filter(r=>r.perish).length;
+  const bad=dec.length>=5&&rate>0.4;
+  const trial=dec.length<5?'Collecting decisions (need at least 5 to judge).':rate>0.4?(wks>=6?'STOP and redesign: override rate above 40% after 6 weeks.':'Warning: override rate above 40%. Judged at week 6.'):'On track: override rate within the 40% limit.';
+  $('#app').innerHTML=`<div class="card today"><h2>Is this working?</h2>
+   <div class="two" style="margin-top:8px">
+    <div><div class="sn">Override rate (limit 40%)</div><div class="big">${dec.length?Math.round(rate*100)+'%':'no data yet'}</div>
+     <div class="gauge"><i class="${bad?'bad':''}" style="width:${rate*100}%"></i><u style="left:40%"></u></div>
+     <div class="sn" style="margin-top:6px">${dec.length} decisions, ${ov} overridden · week ${wks+1} of the 6-week trial</div></div>
+    <div><div class="sn">Kill criterion</div><div class="verd" style="margin:4px 0 0;background:var(--${bad?'now':'ok'});color:var(--${bad?'nowi':'oki'})">${trial}</div></div></div></div>
+  <div class="two">
+   <div class="card"><h2>Right now, from the stock data</h2>
+    <div class="kv"><span>SKUs at stockout risk (reorder)</span><b>${so.length} of ${rows.length}</b></div>
+    <div class="kv"><span>...of which perishable</span><b>${pso}</b></div>
+    <div class="kv"><span>SKUs at overstock risk (pause)</span><b>${over.length}</b></div>
+    <div class="kv"><span>...of which perishable (write-off risk)</span><b>${pov}</b></div>
+    <div class="kv"><span>Need Raghav's judgment</span><b>${rows.filter(r=>r.flags.length).length}</b></div>
+    <div class="sn" style="margin-top:8px">Stockouts drive the ₹18-22 lakh/qtr lost sales; perishable overstock drives most of the ₹10-12 lakh write-offs.</div></div>
+   <div class="card"><h2>Money: baseline, target, payback</h2>
+    <div class="row" style="margin-bottom:8px"><label>Stockout loss ₹L/qtr <input type="number" data-d="ss" value="${fin.ss}"></label>
+     <label>Write-off ₹L/qtr <input type="number" data-d="wo" value="${fin.wo}"></label>
+     <label>Reduction % <input type="number" data-d="red" value="${fin.red}"></label>
+     <label>Budget ₹L <input type="number" data-d="bud" value="${fin.bud}"></label></div>
+    <div id="fin">${finHTML()}</div>
+    <div class="row" style="margin-top:10px"><label>Actual stockout loss ₹L <input type="number" data-d="as" value="${fin.as}"></label>
+     <label>Actual write-off ₹L <input type="number" data-d="aw" value="${fin.aw}"></label></div>
+    <div class="sn" style="margin-top:6px">Baselines are the midpoints of the case's ₹18-22 and ₹10-12 lakh ranges. Replace with your own numbers.</div></div>
+   <div class="card"><h2>Who does what</h2>
+    <div class="kv"><span>Raghav (Planner)</span><span>Approves or overrides every row</span></div>
+    <div class="kv"><span>Priya (Analyst)</span><span>Supplies the SAP exports, checks data</span></div>
+    <div class="kv"><span>Procurement</span><span>Checks the draft PO in Zoho, then issues it</span></div>
+    <div class="kv"><span>Deepa (Sponsor)</span><span>Reviews this page weekly; owns the stop call</span></div></div>
+   <div class="card"><h2>Stop and redesign if</h2><ol class="s"><li>Override rate is above 40% after 6 weeks of runs</li>
+    <li>Losses are no better than baseline after one quarter</li><li>The SAP export cannot be made reliable</li></ol>
+    <div class="sn">A high override rate means the rules, not Raghav, are wrong.</div></div></div>`;
+}
+function renderPriya(){
+  const chk=validate(D,R,new Date()),bad=chk.filter(c=>c.lv==='bad').length,warn=chk.filter(c=>c.lv==='warn').length;
+  $('#app').innerHTML=`<div class="card today"><h2>Data check before each run</h2>
+   <div class="verd" style="margin:0 0 8px;background:var(--${bad?'now':warn?'x15':'ok'});color:var(--${bad?'nowi':warn?'x15i':'oki'})">${bad?bad+' problem'+(bad>1?'s':'')+' to fix before Raghav uses this run':warn?'Usable, '+warn+' thing'+(warn>1?'s':'')+' to look at':'All checks passed: ready for Raghav'}</div>
+   ${chk.map(c=>`<div class="kv"><span><span class="lv ${c.lv}">${c.lv==='ok'?'✓':c.lv==='warn'?'!':'✗'}</span>${esc(c.t)}</span></div>`).join('')}</div>
+  <div class="two"><div class="card"><h2>Twice-weekly routine (about 10 minutes)</h2><ol class="s">
+   <li>Export four files from SAP: weekly sales by SKU, SKU master, current stock, calendar.</li>
+   <li>Drop them into the data box at the top of this page.</li>
+   <li>Fix anything red above, then tell Raghav the run is ready.</li>
+   <li>Download the recommendations file below for the record.</li></ol>
+   <button class="p" data-act="exportRecs">Download full recommendations CSV</button></div>
+  <div class="card"><h2>Zoho link</h2>
+   ${(()=>{const n=res.rows.length,ok=res.rows.filter(r=>zmap[r.id]&&zmap[r.id].zoho_item_id&&zmap[r.id].zoho_vendor_id).length;return`
+   <div class="kv"><span>Mode</span><b>Dry run (Zoho not connected)</b></div>
+   <div class="kv"><span>SKUs mapped to a Zoho item and vendor</span><b>${ok} of ${n}</b></div>
+   <div class="kv"><span>Draft POs this run</span><b>${poList().length}</b></div>
+   <div class="sn" style="margin-top:8px">${ok<n?'Fill in zoho_item_id, zoho_vendor_id (and optionally rate) in the zoho_map table in Supabase. ':''}Going live needs the Edge Function and Zoho credentials in supabase/README.md.</div>`})()}</div>
+  <div class="card"><h2>Columns the files must have</h2>
+   ${Object.keys(NEED).map(k=>`<div class="kv"><span>${NAME[k]}</span><span class="sn">${NEED[k].join(', ')}</span></div>`).join('')}
+   <div class="sn" style="margin-top:8px">The distributor file is not needed. Extra columns are ignored.</div></div></div>`;
+}
+document.addEventListener('input',e=>{const k=e.target.dataset.d;if(!k)return;const v=e.target.value;fin[k]=v===''?'':parseFloat(v);if(fin[k]!==''&&isNaN(fin[k]))return;
+  ['ss','wo','red','bud'].forEach(x=>{if(fin[x]==='')fin[x]=0});store.set('rd-fin',fin);$('#fin').innerHTML=finHTML();clearTimeout(finT);finT=setTimeout(()=>{if(cfg&&cstat==='on')cloud.saveSetting(cfg,'fin',fin).catch(()=>{})},700)});
+
+const CC={'Reorder now':'#e0525e','Review':'#9b7be0','Reorder 1.5x':'#e5a50a','Pause order':'#4a90d9','OK':'#34b37a'};
+const WHAT={'Reorder now':'stock is below the safe level','Reorder 1.5x':'demand is rising, order extra','Pause order':'plenty of stock, hold the next order','Review':'mixed signals, Raghav decides','OK':'nothing to do'};
+const pol=(cx,cy,r,deg)=>[cx+r*Math.cos((deg-90)*Math.PI/180),cy+r*Math.sin((deg-90)*Math.PI/180)];
+const arcPath=(cx,cy,r,a0,a1)=>{const[x0,y0]=pol(cx,cy,r,a0),[x1,y1]=pol(cx,cy,r,a1);return`M${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`};
+const urg=(a,b)=>ORDER.indexOf(a.call)-ORDER.indexOf(b.call)||a.cover-b.cover;
+const L_=n=>'₹'+(Math.round(n*10)/10)+'L';
+const short=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
+const posOf=r=>{const c=r.cover,lo=r.lo,hi=r.hi;return c<lo?c/lo/3:c<=hi?1/3+(c-lo)/(hi-lo)/3:2/3+Math.min((c-hi)/hi,1)/3};
+
+function donut(rows){
+  const cnt={};rows.forEach(r=>cnt[r.call]=(cnt[r.call]||0)+1);const N=rows.length,ok=cnt['OK']||0;let a=0,segs='';
+  for(const c of ORDER){if(!cnt[c])continue;const span=360*cnt[c]/N,gap=cnt[c]===N?0:2,a0=a+gap/2,a1=Math.min(a+span-gap/2,a0+359.9);
+    segs+=`<path d="${arcPath(100,100,78,a0,a1)}" stroke="${CC[c]}"><title>${c}: ${cnt[c]}</title></path>`;a+=span}
+  return`<svg viewBox="0 0 200 200" style="max-width:240px;margin:0 auto"><g fill="none" stroke-width="22">${segs}</g>
+  <text x="100" y="100" text-anchor="middle" style="font:700 32px system-ui;fill:var(--ink)">${ok} of ${N}</text><text x="100" y="120" text-anchor="middle" class="svt">products are fine</text></svg>
+  <ul class="gl">${ORDER.filter(c=>cnt[c]).map(c=>`<li><i style="background:${CC[c]}"></i><b>${cnt[c]}</b><div>${c} <span>· ${WHAT[c]}</span></div></li>`).join('')}</ul>`;
+}
+
+function stockBars(rows){
+  const list=rows.slice().sort(urg).slice(0,12),LW=200,TW=290,RW=56,W=LW+TW+RW,RH=27,T=24,H=T+RH*list.length+4,x=t=>LW+t*TW;
+  let o=`<svg viewBox="0 0 ${W} ${H}"><rect x="${x(1/3)}" y="${T-6}" width="${TW/3}" height="${RH*list.length+4}" rx="4" fill="var(--ok)"/>
+  <text x="${x(1/6)}" y="12" text-anchor="middle" class="svt">running short</text><text x="${x(.5)}" y="12" text-anchor="middle" class="svt" style="fill:var(--oki);font-weight:600">right amount</text><text x="${x(5/6)}" y="12" text-anchor="middle" class="svt">too much</text>`;
+  list.forEach((r,i)=>{const y=T+i*RH+RH/2;
+    o+=`<text x="0" y="${y+4}" style="font:12.5px system-ui;fill:var(--ink)">${esc(short(r.name.replace('Freshroots ',''),30))}</text><line x1="${LW}" x2="${LW+TW}" y1="${y}" y2="${y}" stroke="var(--line)"/>
+    <circle cx="${x(Math.max(posOf(r),.02)).toFixed(1)}" cy="${y}" r="7" fill="${CC[r.call]}"><title>${esc(r.name)}: ${r.cover.toFixed(1)} weeks of stock, safe range ${r.lo}-${r.hi}</title></circle><text x="${W}" y="${y+4}" text-anchor="end" class="svt">${r.cover.toFixed(1)} wks</text>`});
+  return o+`</svg>`+(rows.length>12?`<div class="pc" style="margin:6px 0 0">Showing the 12 most urgent of ${rows.length}. Every product is in the Raghav tab.</div>`:'');
+}
+
+function weekly(){
+  const ids=new Set(res.rows.map(r=>r.id)),wk=[...new Set(D.sales.map(r=>r.Week))].sort(),ix={};wk.forEach((w,i)=>ix[w]=i);
+  const tot=wk.map(()=>0);D.sales.forEach(r=>{if(ids.has(r.SKU_ID))tot[ix[r.Week]]+=+r.Units_Sold||0});
+  const n=tot.length;if(n<4)return{svg:'',delta:0};
+  const W=600,H=230,L=48,Rt=14,T=16,Bm=26,mn=Math.min(...tot)*.85,mx=Math.max(...tot)*1.06,x=i=>L+i/(n-1)*(W-L-Rt),y=v=>T+(1-(v-mn)/(mx-mn))*(H-T-Bm);
+  const m=a=>a.reduce((s,v)=>s+v,0)/a.length,a12=m(tot.slice(-12)),a4=m(tot.slice(-4)),line=tot.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' L');
+  const svg=`<svg viewBox="0 0 ${W} ${H}"><defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--acc);stop-opacity:.25"/><stop offset="1" style="stop-color:var(--acc);stop-opacity:0"/></linearGradient></defs>
+  ${[0,1,2,3,4].map(k=>{const v=mn+(mx-mn)*k/4,yy=y(v);return`<line x1="${L}" x2="${W-Rt}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)"/><text x="${L-6}" y="${(yy+4).toFixed(1)}" text-anchor="end" class="svt">${Math.round(v).toLocaleString()}</text>`}).join('')}
+  <rect x="${x(n-4).toFixed(1)}" y="${T}" width="${(x(n-1)-x(n-4)).toFixed(1)}" height="${H-T-Bm}" fill="var(--acc)" fill-opacity=".1"/><text x="${((x(n-4)+x(n-1))/2).toFixed(1)}" y="${T+11}" text-anchor="middle" class="svt" style="fill:var(--acc);font-weight:600">last 4 weeks</text>
+  <path d="M${line} L${x(n-1)},${H-Bm} L${x(0)},${H-Bm} Z" fill="url(#ar)"/>
+  <line x1="${L}" x2="${W-Rt}" y1="${y(a12).toFixed(1)}" y2="${y(a12).toFixed(1)}" stroke="#e5a50a" stroke-dasharray="5 4"/><text x="${W-Rt}" y="${(y(a12)-5).toFixed(1)}" text-anchor="end" class="svt" style="fill:#c48a00">usual level ${Math.round(a12).toLocaleString()}</text>
+  <path d="M${line}" fill="none" stroke="var(--acc)" stroke-width="2.6" stroke-linejoin="round"/><circle cx="${x(n-1).toFixed(1)}" cy="${y(tot[n-1]).toFixed(1)}" r="5" fill="var(--acc)"/>
+  ${wk.map((w,i)=>i%Math.ceil(n/8)===0||i===n-1?`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" class="svt">${w.slice(-3)}</text>`:'').join('')}</svg>`;
+  return{svg,delta:(a4/a12-1)*100};
+}
+
+function payback(){
+  const base=fin.ss+fin.wo,sv=base*fin.red/100,W=300,H=130,Lm=4,Bm=20,N=6,mx=Math.max(fin.bud*1.25,sv*N,1),bw=34,gap=(W-Lm*2-bw*N)/(N-1),yy=v=>H-Bm-v/mx*(H-Bm-12);
+  return`<svg viewBox="0 0 ${W} ${H}" style="max-width:460px">${Array.from({length:N},(_,i)=>{const v=sv*(i+1),xx=Lm+i*(bw+gap),ok=v>=fin.bud;
+    return`<rect x="${xx.toFixed(1)}" y="${yy(v).toFixed(1)}" width="${bw}" height="${(H-Bm-yy(v)).toFixed(1)}" rx="3" fill="${ok?'#34b37a':'#8fb8a4'}"><title>Saved so far after quarter ${i+1}: ${L_(v)}</title></rect><text x="${(xx+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" class="svt">Q${i+1}</text>`}).join('')}
+  <line x1="0" x2="${W}" y1="${yy(fin.bud).toFixed(1)}" y2="${yy(fin.bud).toFixed(1)}" stroke="#e5a50a" stroke-dasharray="5 4"/><text x="2" y="${(yy(fin.bud)-4).toFixed(1)}" class="svt" style="fill:#c48a00">cost of the project ${L_(fin.bud)}</text></svg>`;
+}
+
+function heat(rows,wk){
+  const sorted=rows.slice().sort(urg).slice(0,24),n=Math.max(...sorted.map(r=>r.weekly.length)),cw=30,ch=17,Lm=76,T=26,W=Lm+cw*n+8,H=T+ch*sorted.length+8;
+  const col=ratio=>ratio>=1?`rgba(217,119,6,${(.12+Math.min(ratio-1,.4)*2).toFixed(2)})`:`rgba(59,130,196,${(.08+Math.min(1-ratio,.4)*1.4).toFixed(2)})`;
+  return`<svg viewBox="0 0 ${W} ${H}">
+  ${Array.from({length:n},(_,i)=>i%2===0||i===n-1?`<text x="${Lm+i*cw+cw/2}" y="${T-8}" text-anchor="middle" class="svt">${(wk[wk.length-n+i]||'').slice(-3)}</text>`:'').join('')}
+  ${sorted.map((r,ri)=>{const mean=r.weekly.reduce((s,v)=>s+v,0)/r.weekly.length,off=n-r.weekly.length,yy=T+ri*ch;
+    return`<circle cx="8" cy="${yy+ch/2}" r="4" fill="${CC[r.call]}"/><text x="18" y="${yy+ch/2+4}" class="svt" style="fill:var(--ink)">${r.id}</text>`+
+    r.weekly.map((v,i)=>`<rect x="${Lm+(i+off)*cw+1}" y="${yy+1}" width="${cw-2}" height="${ch-2}" rx="2" fill="${col(v/mean)}"><title>${r.id}: ${v} units (${Math.round(v/mean*100)}% of its usual)</title></rect>`).join('')}).join('')}
+  <rect x="${Lm+(n-4)*cw}" y="${T-2}" width="${cw*4}" height="${ch*sorted.length+4}" fill="none" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1.3" stroke-dasharray="5 3"/></svg>
+  <div class="lg" style="justify-content:flex-start"><span><i style="background:rgba(59,130,196,.55)"></i>selling less than usual</span><span><i style="background:rgba(217,119,6,.7)"></i>selling more than usual</span><span>dashed box = last 4 weeks</span></div>`;
+}
+
+function renderCommand(){
+  const rows=res.rows,N=rows.length;
+  const chk=validate(D,R,new Date()),nb=chk.filter(c=>c.lv==='bad').length,nw=chk.filter(c=>c.lv==='warn').length;
+  const dec=Object.values(decisions),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
+  const todo=rows.slice().sort(urg).filter(r=>r.call!=='OK').slice(0,7),buy=rows.reduce((a,r)=>a+(r.call.startsWith('Reorder')?r.qty:0),0);
+  const toOrder=rows.filter(r=>r.call.startsWith('Reorder')),perish=toOrder.filter(r=>r.perish).length,judge=rows.filter(r=>r.flags.length||r.call==='Review').length;
+  const base=fin.ss+fin.wo,sv=base*fin.red/100,pb=sv>0?fin.bud/sv:0,pl=weekly(),wk=[...new Set(D.sales.map(r=>r.Week))].sort();
+  const adv=r=>r.call.startsWith('Reorder')?`Order ${r.qty} units`:r.call==='Pause order'?'Hold the next order':'Raghav decides';
+  const why=r=>r.call==='Pause order'?`${r.cover.toFixed(1)} weeks of stock, more than the ${r.hi} needed`:r.call==='Review'?esc(r.reason):`only ${r.cover.toFixed(1)} weeks of stock left, should be ${r.lo} to ${r.hi}`+(r.call==='Reorder 1.5x'||r.reason.includes('demand high')?', and demand is rising':'');
+  $('#app').innerHTML=`<div class="hud">
+  <div class="pn s12 chips2"><b>Today</b><span class="chip">Stock counted on ${esc(res.asof)}</span>${res.fest?`<span class="chip warn">Festival month: demand +${Math.round((R.uplift-1)*100)}%</span>`:''}
+    <span class="chip ${poList().length?'warn':''}">Zoho: dry run · ${poList().length} draft PO${poList().length===1?'':'s'}</span>
+    <span class="chip ${cstat==='on'?'good':cstat==='err'?'bad':''}" title="${esc(cerr)}">Cloud sync: ${cstat==='on'?'connected':cstat==='err'?'error':cstat==='connecting'?'connecting':'off'}</span>
+    <button class="chip ${nb?'bad':nw?'warn':'good'}" data-v="priya">${nb?nb+' data problem'+(nb>1?'s':''):nw?nw+' data warning'+(nw>1?'s':''):'Data checks passed'}</button></div>
+  <div class="kpis s12"><div class="pn kpi"><b>${toOrder.length}</b><span>products to order</span></div><div class="pn kpi"><b>${buy.toLocaleString()}</b><span>units to order in total</span></div>
+    <div class="pn kpi"><b>${perish}</b><span>of them perishable (spoil fast)</span></div><div class="pn kpi"><b>${judge}</b><span>need Raghav's judgment</span></div></div>
+  <div class="pn s4"><div class="pt">How is our stock overall?</div><div class="pc">Each product gets one colour. Green means nothing to do.</div>${donut(rows)}</div>
+  <div class="pn s8"><div class="pt">Is each product's stock right?</div><div class="pc">One dot per product. Inside the green band is the right amount of stock. Left means running short, right means too much.</div>${stockBars(rows)}</div>
+  <div class="pn s6"><div class="pt">What needs doing first</div><div class="pc">Most urgent at the top. Click one to see it in Raghav's tab.</div>
+    ${todo.length?todo.map(r=>`<button class="it" data-act="goto" data-id="${esc(r.id)}"><i class="dot" style="background:${CC[r.call]}"></i><span><b>${adv(r)}: ${esc(r.name.replace('Freshroots ',''))}</b><span class="sub">${why(r)}</span></span></button>`).join(''):'<div class="pc">All clear. Nothing needs action.</div>'}</div>
+  <div class="pn s6"><div class="pt">Are sales going up or down?</div><div class="pc">Total units sold each week. <b style="color:${pl.delta>=0?'#c48a00':'var(--pausei)'}">The last 4 weeks are ${Math.abs(pl.delta).toFixed(0)}% ${pl.delta>=0?'above':'below'} the usual level.</b></div>${pl.svg}</div>
+  <div class="pn s4"><div class="pt">Is the tool giving good advice?</div><div class="pc">How often Raghav changes the tool's advice. If it goes above 40%, the rules need fixing.</div>
+    <div class="ob-track"><i style="width:${(rate*100).toFixed(0)}%;background:${rate>.4?'#e0525e':'#34b37a'}"></i><u></u></div><div class="ob-l"><span style="left:0;transform:none">0%</span><span style="left:40%">limit 40%</span><span style="left:100%;transform:translateX(-100%)">100%</span></div>
+    <div class="stat" style="margin-top:10px"><b>${dec.length?Math.round(rate*100)+'%':'No decisions yet'}</b><span>${dec.length?`${ov} of ${dec.length} decisions changed`:'Approve or override rows in Raghav\'s tab'}</span></div></div>
+  <div class="pn s8"><div class="pt">What is this worth?</div><div class="pc">If we cut losses by ${fin.red}%, this is what we save each quarter. Bars turn green once the savings have paid for the project.</div>
+    <div class="stats"><div class="stat"><b>${L_(base)}</b><span>lost per quarter today</span></div><div class="stat"><b>${L_(sv)}</b><span>saved per quarter</span></div><div class="stat"><b>${pb?pb.toFixed(1)+' quarters':'n/a'}</b><span>to pay for itself</span></div></div>${payback()}</div>
+  <div class="pn s12"><div class="pt">Which products are selling more or less than usual?</div><div class="pc">Each row is a product, each column a week. Orange means it sold more than its usual, blue means less. Look at the dashed box: a strong orange row there means demand just shifted, the kind of change a monthly review would miss.</div>${heat(rows,wk)}</div></div>`;
+}
+const cloud=makeCloud((...a)=>fetch(...a));
+let cfg=store.get('rd-cloud',null),snap={},cstat=cfg?'connecting':'off',cerr='',finT=0,csaved='';
+function paintCloud(){
+  $('#cst').textContent=cstat==='on'?'· connected':cstat==='err'?'· error: '+cerr:cstat==='connecting'?'· connecting…':'· not connected';
+  if(cfg){$('#cu').value=cfg.url;$('#ck').value=cfg.key}
+  const bar=$('#cbar');
+  bar.innerHTML=!cfg?'':cstat==='err'?`<span style="color:var(--nowi)"><b>Cloud sync error:</b> ${esc(cerr)}</span> <button id="cretry">Retry</button>`
+    :cstat==='connecting'?'Cloud sync: connecting…':`Cloud sync: connected${csaved?' · last saved '+csaved:' · nothing saved yet'}`;
+  const r=$('#cretry');if(r)r.onclick=()=>cfg&&(cstat==='err'&&!snapOk?cloudSync():cloudPush(true));
+}
+let snapOk=false;
+async function cloudSync(){
+  if(!cfg)return;cstat='connecting';paintCloud();
+  try{
+    const remote=await cloud.load(cfg);decisions={...decisions,...remote};
+    snap=await cloud.flush(cfg,decisions,JSON.parse(JSON.stringify(remote)));   // pushes anything that only exists locally
+    const f=await cloud.loadSetting(cfg,'fin');if(f)fin={...fin,...f};
+    try{zmap=await cloud.loadZmap(cfg);pos={...pos,...await cloud.loadPOs(cfg)};zerr=''}catch(e){zerr=e.message}
+    store.set('rd-decisions',decisions);store.set('rd-fin',fin);cstat='on';cerr='';snapOk=true;
+  }catch(e){cstat='err';cerr=e.message}
+  paintCloud();if(res)render();
+}
+let zmap={},pos=store.get('rd-pos',{}),zerr='';
+// keep purchase orders in step with decisions: runs after every approve / override / undo
+async function poSync(){
+  if(!res)return;
+  const{up,rm,vd}=reconcilePOs(res.rows,decisions,zmap,pos,res.asof);
+  up.forEach(p=>pos[p.decision_id]={...pos[p.decision_id],...p});rm.forEach(k=>delete pos[k]);vd.forEach(k=>pos[k]={...pos[k],status:'void_requested'});
+  store.set('rd-pos',pos);
+  if(cfg&&cstat!=='connecting'&&snapOk){
+    try{if(up.length)await cloud.savePOs(cfg,up);if(rm.length)await cloud.deletePOs(cfg,rm);if(vd.length)await cloud.voidPOs(cfg,vd)}
+    catch(e){cstat='err';cerr='purchase orders: '+e.message;paintCloud()}
+  }
+}
+const poList=()=>Object.values(pos).filter(p=>res&&p.decision_id.startsWith(res.asof+'|')).sort((a,b)=>a.sku_id<b.sku_id?-1:1);
+async function cloudPush(force){
+  if(!cfg||cstat==='connecting'||(!snapOk&&!force))return;
+  try{snap=await cloud.flush(cfg,decisions,snap);cstat='on';cerr='';csaved=new Date().toLocaleTimeString()}catch(e){cstat='err';cerr=e.message}
+  paintCloud();
+}
+$('#cgo').onclick=()=>{
+  const url=$('#cu').value.trim(),key=$('#ck').value.trim();
+  if(!/^https:\/\/[^\s/]+/.test(url)||key.length<20){cstat='err';cerr='enter the https project URL and the anon key';return paintCloud()}
+  cfg={url,key};store.set('rd-cloud',cfg);cloudSync();
+};
+$('#cload').onclick=async()=>{
+  if(!cfg||cstat!=='on'){$('#err').textContent='Connect to Supabase first.';return}
+  try{D=await cloud.loadData(cfg);$('#err').textContent='';status();go()}catch(e){$('#err').textContent='Could not load from Supabase: '+e.message}
+};
+$('#coff').onclick=()=>{cfg=null;snap={};cstat='off';try{localStorage.removeItem('rd-cloud')}catch{}$('#cu').value='';$('#ck').value='';paintCloud();if(res)render()};
+function csvOut(name,header,lines){
+  const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v,
+  b=new Blob([[header,...lines].map(l=>l.map(q).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t||!res)return;
+  if(t.dataset.v){view=t.dataset.v;return render()}
+  if(t.dataset.act==='goto'){q=t.dataset.id.toLowerCase();filter='all';view='raghav';return render()}
+  if(t.dataset.f){filter=t.dataset.f;return render()}
+  const id=t.dataset.id,r=res.rows.find(x=>x.id===id),act=t.dataset.act;
+  if(act==='approve')decisions[key(r)]={status:'approved',call:r.call,qty:r.qty,recCall:r.call,recQty:r.qty,at:new Date().toISOString()};
+  else if(act==='edit'){editing.add(id);return render()}
+  else if(act==='saveOv'){const call=$('#c-'+id).value,qty=call.startsWith('Reorder')?+$('#q-'+id).value||0:0;
+    decisions[key(r)]={status:'overridden',call,qty,recCall:r.call,recQty:r.qty,note:$('#n-'+id).value,at:new Date().toISOString()};editing.delete(id)}
+  else if(act==='undo'){delete decisions[key(r)]}
+  else if(act==='approveAll'){res.rows.filter(x=>filter==='all'||(filter==='flag'?x.flags.length:x.call===filter)).forEach(x=>{
+    if(!decisions[key(x)])decisions[key(x)]={status:'approved',call:x.call,qty:x.qty,recCall:x.call,recQty:x.qty,at:new Date().toISOString()}})}
+  else if(act==='exportOrders'){return csvOut(`approved-orders-${res.asof}.csv`,['SKU_ID','SKU_Name','Distributor_ID','Order_Qty'],
+    res.rows.filter(x=>{const d=decisions[key(x)];return d&&d.qty>0}).map(x=>[x.id,x.name,x.dist,decisions[key(x)].qty]))}
+  else if(act==='exportLog'){return csvOut(`decision-log-${res.asof}.csv`,['As_Of','SKU_ID','Recommended','Rec_Qty','Status','Final_Call','Final_Qty','Note'],
+    res.rows.filter(x=>decisions[key(x)]).map(x=>{const d=decisions[key(x)];return[res.asof,x.id,d.recCall,d.recQty,d.status,d.call,d.qty,d.note||'']}))}
+  else if(act==='exportPOs'){
+    const b=new Blob([JSON.stringify(poList().map(p=>({...p.payload,_sku:p.sku_id,_status:p.status,_warnings:p.warnings})),null,2)],{type:'application/json'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download=`zoho-purchase-orders-${res.asof}.json`;a.click();URL.revokeObjectURL(a.href);return}
+  else if(act==='exportRecs'){return csvOut(`recommendations-${res.asof}.csv`,['SKU_ID','SKU_Name','On_Hand','Avg_4wk','Avg_12wk','Weeks_Cover','Call','Reorder_Qty','Reason','Needs_Raghav'],
+    res.rows.map(x=>[x.id,x.name,x.onHand,x.avg4.toFixed(1),x.avg12.toFixed(1),x.cover.toFixed(1),x.call,x.qty,x.reason,x.flags.join('; ')]))}
+  else return;
+  poSync();store.set('rd-decisions',decisions);render();cloudPush();
+});
+loadSample();paintCloud();if(cfg)cloudSync();
+</script>
+</body>
+</html>
