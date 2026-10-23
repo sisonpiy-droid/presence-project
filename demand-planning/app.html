@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Freshroots Reorder Desk</title>
 <style>
-:root{--bg:#050b14;--card:rgba(10,24,40,.72);--ink:#d9f3ff;--mute:#7ea0b5;--line:rgba(25,227,255,.16);--acc:#19e3ff;
---now:rgba(255,77,109,.16);--nowi:#ff6f88;--x15:rgba(255,176,32,.16);--x15i:#ffc14d;--pause:rgba(77,163,255,.16);--pausei:#74b8ff;
---rev:rgba(179,136,255,.16);--revi:#c4a3ff;--ok:rgba(41,242,160,.14);--oki:#4df5b3}
+:root{--bg:#f6f7f5;--card:#fff;--ink:#1b1f1d;--mute:#667069;--line:#e2e6e2;--acc:#1f6f4a;
+--now:#fde3e3;--nowi:#b42318;--x15:#fff1cc;--x15i:#8a5a00;--pause:#dce9f9;--pausei:#1b4f91;--rev:#e8e0f7;--revi:#5b3fa0;--ok:#e3f3e8;--oki:#1f6f4a}
+@media(prefers-color-scheme:dark){:root{--bg:#121513;--card:#1b1f1d;--ink:#e8ece9;--mute:#9aa59d;--line:#2c332f;--acc:#4cc38a;
+--now:#4a1f1f;--nowi:#ff9b94;--x15:#4a3a12;--x15i:#ffd37a;--pause:#1c3350;--pausei:#9cc4f5;--rev:#34295a;--revi:#c9b8f5;--ok:#1b3a28;--oki:#7fdba8}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,sans-serif}
 .w{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
 h1{font-size:22px;margin:0 0 2px}h2{font-size:15px;margin:0 0 10px}.mute{color:var(--mute)}
@@ -15,7 +16,7 @@ h1{font-size:22px;margin:0 0 2px}h2{font-size:15px;margin:0 0 10px}.mute{color:v
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.grow{flex:1}
 button,select,input{font:inherit;color:inherit}
 button{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 11px;cursor:pointer}
-button:hover{border-color:var(--acc)}button.p{background:var(--acc);color:#04121c;border-color:var(--acc);font-weight:700}
+button:hover{border-color:var(--acc)}button.p{background:var(--acc);color:#fff;border-color:var(--acc)}
 button.on{outline:2px solid var(--acc)}
 input[type=number],input[type=text],select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 input[type=number]{width:70px}
@@ -50,66 +51,29 @@ details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-col
 .today{border-left:5px solid var(--acc)}.today h2{font-size:17px}.today ul{margin:6px 0 0;padding-left:18px}
 #q{width:200px}details>summary .sn{font-weight:400}
 
-body{background:radial-gradient(1100px 600px at 78% -8%,rgba(25,227,255,.13),transparent 60%),radial-gradient(900px 520px at -8% 108%,rgba(130,90,255,.13),transparent 60%),#050b14;font-family:Bahnschrift,"Segoe UI",system-ui,sans-serif}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:linear-gradient(rgba(25,227,255,.045) 1px,transparent 1px) 0 0/44px 44px,linear-gradient(90deg,rgba(25,227,255,.045) 1px,transparent 1px) 0 0/44px 44px}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px)}
-.w{position:relative;z-index:1}
-h1{font-size:22px;letter-spacing:.2em;text-transform:uppercase;color:#fff;text-shadow:0 0 16px rgba(25,227,255,.7)}
-h2{letter-spacing:.08em}
-.card,.pn{position:relative;background:linear-gradient(180deg,rgba(14,34,56,.78),rgba(7,16,29,.82));border:1px solid rgba(25,227,255,.22);border-radius:3px;box-shadow:0 0 28px rgba(25,227,255,.06) inset,0 0 18px rgba(0,0,0,.4)}
-.card::before,.pn::before,.card::after,.pn::after{content:"";position:absolute;width:14px;height:14px;pointer-events:none}
-.card::before,.pn::before{top:-1px;left:-1px;border-top:2px solid var(--acc);border-left:2px solid var(--acc)}
-.card::after,.pn::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--acc);border-right:2px solid var(--acc)}
-.tile.card::before,.tile.card::after{display:none}
-.tabs button.on{text-shadow:0 0 10px var(--acc)}
-.tabs{border-bottom-color:rgba(25,227,255,.25)}
-th{letter-spacing:.1em;text-transform:uppercase;font-size:11px;color:var(--acc)}
-.badge{letter-spacing:.06em;text-transform:uppercase;font-size:11px}
-.pn{padding:14px 14px 12px;animation:up .6s both;animation-delay:calc(var(--i,0)*80ms)}
-.pt{font-weight:700;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--acc);text-shadow:0 0 10px rgba(25,227,255,.55)}
-.pc{font-size:12.5px;color:var(--mute);margin:3px 0 8px;min-height:2.6em}
-.hud{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
-@media(min-width:1000px){.hud{grid-template-columns:repeat(12,1fr)}.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s12{grid-column:1/-1}}
-@media(min-width:640px) and (max-width:999px){.hud{grid-template-columns:1fr 1fr}.s12,.s6,.s5{grid-column:1/-1}}
-.pn svg{display:block;width:100%;height:auto;overflow:visible}
-.bar{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;padding:10px 14px}
-.led{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.led i{width:9px;height:9px;border-radius:50%;display:inline-block;animation:pulse 2s infinite}
-.clk{font:600 15px Consolas,monospace;color:#fff;letter-spacing:.1em}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
-.kpi{padding:12px 14px}.kpi b{display:block;font:700 34px/1.05 Consolas,monospace;color:#fff;text-shadow:0 0 14px rgba(25,227,255,.6)}
-.kpi span{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
-.lg{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;margin-top:8px;font-size:11.5px;color:var(--mute)}
-.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-.thr{display:grid;grid-template-columns:12px 58px 1fr auto;gap:2px 10px;align-items:center;width:100%;text-align:left;background:rgba(25,227,255,.04);border:1px solid rgba(25,227,255,.14);border-radius:3px;padding:7px 9px;margin-bottom:6px}
-.thr:hover{background:rgba(25,227,255,.11);border-color:var(--acc)}
-.thr .dot{width:10px;height:10px;border-radius:50%;animation:pulse 1.6s infinite}
-.thr b{font-family:Consolas,monospace;color:#fff}.thr .nm{color:var(--mute);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.thr .cv{font:600 12px Consolas,monospace;text-align:right}.thr .sub{grid-column:2/-1;font-size:11.5px;color:var(--mute)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
-.stat b{display:block;font:700 26px/1.1 Consolas,monospace;color:#fff;text-shadow:0 0 12px rgba(25,227,255,.55)}
-.stat span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.big-n{font:700 56px Consolas,monospace;fill:#fff}.lab{font:700 12px Bahnschrift,"Segoe UI";letter-spacing:.34em;fill:#19e3ff}.lab2{font:10px Bahnschrift,"Segoe UI";letter-spacing:.12em;fill:#7ea0b5}
-.svt{font:10px Consolas,monospace;fill:#7ea0b5}.svt.h{fill:#19e3ff}
-.spin{animation:spin 70s linear infinite;transform-origin:150px 150px}.spin.r{animation-duration:45s;animation-direction:reverse}
-.sweep{animation:spin 7s linear infinite;transform-origin:200px 200px}
-.seg{stroke-dasharray:100;stroke-dashoffset:100;animation:draw .9s ease-out forwards;animation-delay:var(--d,0s)}
-.ndl{animation:nd 1.3s cubic-bezier(.2,.8,.2,1) both;transform-origin:130px 130px}
-.ping{animation:ping 2s ease-out infinite;transform-box:fill-box;transform-origin:center}
-.flow{stroke-dasharray:6 6;animation:dash 1.2s linear infinite}
-@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes draw{to{stroke-dashoffset:0}}
-@keyframes pulse{50%{opacity:.35}}
-@keyframes ping{from{transform:scale(.6);opacity:.9}to{transform:scale(2.6);opacity:0}}
-@keyframes nd{from{transform:rotate(-90deg)}}
-@keyframes dash{to{stroke-dashoffset:-12}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important}.seg{stroke-dashoffset:0}}
+.pn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.pt{font-weight:700;font-size:15px}.pc{font-size:13px;color:var(--mute);margin:2px 0 12px}
+.hud{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px;align-items:start}
+@media(min-width:1000px){.hud{grid-template-columns:repeat(12,1fr)}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:1/-1}}
+.pn svg{display:block;width:100%;height:auto}
+.chips2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.chip{border:1px solid var(--line);border-radius:99px;padding:3px 12px;font-size:13px;background:var(--bg)}
+.chip.good{color:var(--oki);border-color:var(--oki)}.chip.warn{color:var(--x15i);border-color:var(--x15i)}.chip.bad{color:var(--nowi);border-color:var(--nowi)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.kpi b{display:block;font-size:32px;font-weight:700;line-height:1.1}.kpi span{font-size:13px;color:var(--mute)}
+.gl{margin:6px 0 0;padding:0;list-style:none;font-size:13px}.gl li{display:flex;gap:8px;align-items:baseline;padding:3px 0}
+.gl i{width:11px;height:11px;border-radius:3px;flex:none;position:relative;top:1px}.gl b{min-width:22px}.gl span{color:var(--mute)}
+.it{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 2px}
+.it:hover{background:var(--bg)}.it .dot{width:11px;height:11px;border-radius:50%;margin-top:5px;flex:none}.it b{display:block}.it .sub{font-size:13px;color:var(--mute)}
+.svt{font:11px system-ui,sans-serif;fill:var(--mute)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}.stat b{display:block;font-size:24px;line-height:1.15}.stat span{font-size:12.5px;color:var(--mute)}
+.ob-track{position:relative;height:16px;border-radius:8px;background:linear-gradient(90deg,var(--ok) 40%,var(--now) 40%);margin:12px 0 6px;overflow:hidden}
+.ob-track i{position:absolute;left:0;top:0;bottom:0;border-radius:8px}.ob-track u{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);left:40%}
+.ob-l{position:relative;height:16px;font-size:12px;color:var(--mute)}.ob-l span{position:absolute;transform:translateX(-50%)}
 </style>
 </head>
 <body>
 <div class="w">
-<h1>Freshroots // Demand Command</h1>
+<h1>Freshroots Reorder Desk</h1>
 <div class="mute">Freshroots demand planning. Recommends only: nothing here places a PO. Raghav approves or overrides every row.</div>
 
 <details class="card" id="panel" open>
@@ -128,7 +92,7 @@ th{letter-spacing:.1em;text-transform:uppercase;font-size:11px;color:var(--acc)}
 </details>
 
 <div class="tabs" id="tabs">
- <button data-v="command">Command<small>Everyone: overview</small></button>
+ <button data-v="command">Overview<small>Start here</small></button>
  <button data-v="raghav">Raghav<small>Planner: decide</small></button>
  <button data-v="deepa">Deepa<small>Sponsor: outcome</small></button>
  <button data-v="priya">Priya<small>Analyst: data feed</small></button>
@@ -385,125 +349,95 @@ function renderPriya(){
 document.addEventListener('input',e=>{const k=e.target.dataset.d;if(!k)return;const v=e.target.value;fin[k]=v===''?'':parseFloat(v);if(fin[k]!==''&&isNaN(fin[k]))return;
   ['ss','wo','red','bud'].forEach(x=>{if(fin[x]==='')fin[x]=0});store.set('rd-fin',fin);$('#fin').innerHTML=finHTML()});
 
-const CC={'Reorder now':'#ff4d6d','Review':'#b388ff','Reorder 1.5x':'#ffb020','Pause order':'#4da3ff','OK':'#29f2a0'};
+const CC={'Reorder now':'#e0525e','Review':'#9b7be0','Reorder 1.5x':'#e5a50a','Pause order':'#4a90d9','OK':'#34b37a'};
+const WHAT={'Reorder now':'stock is below the safe level','Reorder 1.5x':'demand is rising, order extra','Pause order':'plenty of stock, hold the next order','Review':'mixed signals, Raghav decides','OK':'nothing to do'};
 const pol=(cx,cy,r,deg)=>[cx+r*Math.cos((deg-90)*Math.PI/180),cy+r*Math.sin((deg-90)*Math.PI/180)];
 const arcPath=(cx,cy,r,a0,a1)=>{const[x0,y0]=pol(cx,cy,r,a0),[x1,y1]=pol(cx,cy,r,a1);return`M${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`};
-const GLOW='<filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
 const urg=(a,b)=>ORDER.indexOf(a.call)-ORDER.indexOf(b.call)||a.cover-b.cover;
+const L_=n=>'₹'+(Math.round(n*10)/10)+'L';
+const short=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
+const posOf=r=>{const c=r.cover,lo=r.lo,hi=r.hi;return c<lo?c/lo/3:c<=hi?1/3+(c-lo)/(hi-lo)/3:2/3+Math.min((c-hi)/hi,1)/3};
 
-function reactor(rows){
-  const cnt={};rows.forEach(r=>cnt[r.call]=(cnt[r.call]||0)+1);const N=rows.length;let a=0,segs='';
-  for(const c of ORDER){if(!cnt[c])continue;const span=360*cnt[c]/N,gap=cnt[c]===N?0:3,a0=a+gap/2,a1=Math.min(a+span-gap/2,a0+359.9);
-    segs+=`<path class="seg" pathLength="100" d="${arcPath(150,150,108,a0,a1)}" stroke="${CC[c]}" style="--d:${(a/360*.6).toFixed(2)}s"><title>${c}: ${cnt[c]}</title></path>`;a+=span}
-  const ok=cnt['OK']||0,pct=Math.round(ok/N*100);
-  return`<svg viewBox="0 0 300 300"><defs><radialGradient id="core"><stop offset="0" stop-color="#19e3ff" stop-opacity=".32"/><stop offset="1" stop-color="#19e3ff" stop-opacity="0"/></radialGradient>${GLOW}</defs>
-  <circle cx="150" cy="150" r="141" class="spin" fill="none" stroke="#19e3ff" stroke-opacity=".5" stroke-width="6" stroke-dasharray="2 12.6"/>
-  <circle cx="150" cy="150" r="127" class="spin r" fill="none" stroke="#19e3ff" stroke-opacity=".32" stroke-dasharray="30 10 4 10"/>
-  <g filter="url(#glow)" fill="none" stroke-width="16">${segs}</g>
-  <circle cx="150" cy="150" r="90" fill="url(#core)"/><circle cx="150" cy="150" r="90" fill="none" stroke="#19e3ff" stroke-opacity=".28"/>
-  <text x="150" y="160" text-anchor="middle" class="big-n" data-count="${pct}" data-suf="%">${pct}%</text>
-  <text x="150" y="184" text-anchor="middle" class="lab">HEALTHY</text>
-  <text x="150" y="202" text-anchor="middle" class="lab2">${ok} OF ${N} SKUS ON TARGET</text></svg>
-  <div class="lg">${ORDER.filter(c=>cnt[c]).map(c=>`<span><i style="background:${CC[c]};box-shadow:0 0 6px ${CC[c]}"></i>${c} ${cnt[c]}</span>`).join('')}</div>`;
+function donut(rows){
+  const cnt={};rows.forEach(r=>cnt[r.call]=(cnt[r.call]||0)+1);const N=rows.length,ok=cnt['OK']||0;let a=0,segs='';
+  for(const c of ORDER){if(!cnt[c])continue;const span=360*cnt[c]/N,gap=cnt[c]===N?0:2,a0=a+gap/2,a1=Math.min(a+span-gap/2,a0+359.9);
+    segs+=`<path d="${arcPath(100,100,78,a0,a1)}" stroke="${CC[c]}"><title>${c}: ${cnt[c]}</title></path>`;a+=span}
+  return`<svg viewBox="0 0 200 200" style="max-width:240px;margin:0 auto"><g fill="none" stroke-width="22">${segs}</g>
+  <text x="100" y="100" text-anchor="middle" style="font:700 32px system-ui;fill:var(--ink)">${ok} of ${N}</text><text x="100" y="120" text-anchor="middle" class="svt">products are fine</text></svg>
+  <ul class="gl">${ORDER.filter(c=>cnt[c]).map(c=>`<li><i style="background:${CC[c]}"></i><b>${cnt[c]}</b><div>${c} <span>· ${WHAT[c]}</span></div></li>`).join('')}</ul>`;
 }
 
-function radar(rows){
-  const C=200,Rr=160,N=rows.length;
-  const pos=r=>{const c=r.cover,lo=r.lo,hi=r.hi;return c<lo?c/lo/3:c<=hi?1/3+(c-lo)/(hi-lo)/3:2/3+Math.min((c-hi)/hi,1)/3};
-  const pts=rows.map((r,i)=>{const ang=i/N*360,[x,y]=pol(C,C,Rr*Math.max(pos(r),.04),ang),[lx,ly]=pol(C,C,Rr+14,ang);return{r,x,y,lx,ly}});
-  const dr=Math.max(2.4,5.5-N/50),[sx0,sy0]=pol(C,C,Rr,-34),[sx1,sy1]=pol(C,C,Rr,0);
-  return`<svg viewBox="0 0 400 400"><defs>${GLOW}</defs>
-  <circle cx="${C}" cy="${C}" r="${Rr/2}" fill="none" stroke="#29f2a0" stroke-opacity=".13" stroke-width="${Rr/3}"/>
-  ${[1/3,2/3,1].map(f=>`<circle cx="${C}" cy="${C}" r="${Rr*f}" fill="none" stroke="#19e3ff" stroke-opacity="${f===1?.35:.5}" stroke-dasharray="${f===1?'':'3 4'}"/>`).join('')}
-  ${pts.map(p=>`<line x1="${C}" y1="${C}" x2="${pol(C,C,Rr,pts.indexOf(p)/N*360)[0].toFixed(1)}" y2="${pol(C,C,Rr,pts.indexOf(p)/N*360)[1].toFixed(1)}" stroke="#19e3ff" stroke-opacity=".09"/>`).join('')}
-  <polygon points="${pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}" fill="rgba(25,227,255,.07)" stroke="#19e3ff" stroke-opacity=".55" stroke-width="1.2"/>
-  <g class="sweep"><path d="M${C},${C} L${sx0.toFixed(1)},${sy0.toFixed(1)} A${Rr},${Rr} 0 0 1 ${sx1.toFixed(1)},${sy1.toFixed(1)} Z" fill="rgba(25,227,255,.13)"/><line x1="${C}" y1="${C}" x2="${sx1.toFixed(1)}" y2="${sy1.toFixed(1)}" stroke="#19e3ff" stroke-width="1.5"/></g>
-  <g filter="url(#glow)">${pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dr}" fill="${CC[p.r.call]}"><title>${esc(p.r.id)} ${esc(p.r.name)}: ${p.r.cover.toFixed(1)} wks cover (${p.r.call})</title></circle>`).join('')}</g>
-  ${N<=30?pts.map(p=>`<text x="${p.lx.toFixed(1)}" y="${(p.ly+3).toFixed(1)}" text-anchor="middle" class="svt">${p.r.id.replace(/^SKU/,'')}</text>`).join(''):''}
-  <text x="${C}" y="${C-Rr/6+3}" text-anchor="middle" class="svt h">SHORT</text><text x="${C}" y="${C-Rr/2+3}" text-anchor="middle" class="svt h">TARGET</text><text x="${C}" y="${C-Rr*5/6+3}" text-anchor="middle" class="svt h">TOO MUCH</text></svg>`;
+function stockBars(rows){
+  const list=rows.slice().sort(urg).slice(0,12),LW=200,TW=290,RW=56,W=LW+TW+RW,RH=27,T=24,H=T+RH*list.length+4,x=t=>LW+t*TW;
+  let o=`<svg viewBox="0 0 ${W} ${H}"><rect x="${x(1/3)}" y="${T-6}" width="${TW/3}" height="${RH*list.length+4}" rx="4" fill="var(--ok)"/>
+  <text x="${x(1/6)}" y="12" text-anchor="middle" class="svt">running short</text><text x="${x(.5)}" y="12" text-anchor="middle" class="svt" style="fill:var(--oki);font-weight:600">right amount</text><text x="${x(5/6)}" y="12" text-anchor="middle" class="svt">too much</text>`;
+  list.forEach((r,i)=>{const y=T+i*RH+RH/2;
+    o+=`<text x="0" y="${y+4}" style="font:12.5px system-ui;fill:var(--ink)">${esc(short(r.name.replace('Freshroots ',''),30))}</text><line x1="${LW}" x2="${LW+TW}" y1="${y}" y2="${y}" stroke="var(--line)"/>
+    <circle cx="${x(Math.max(posOf(r),.02)).toFixed(1)}" cy="${y}" r="7" fill="${CC[r.call]}"><title>${esc(r.name)}: ${r.cover.toFixed(1)} weeks of stock, safe range ${r.lo}-${r.hi}</title></circle><text x="${W}" y="${y+4}" text-anchor="end" class="svt">${r.cover.toFixed(1)} wks</text>`});
+  return o+`</svg>`+(rows.length>12?`<div class="pc" style="margin:6px 0 0">Showing the 12 most urgent of ${rows.length}. Every product is in the Raghav tab.</div>`:'');
 }
 
-function pulse(){
+function weekly(){
   const ids=new Set(res.rows.map(r=>r.id)),wk=[...new Set(D.sales.map(r=>r.Week))].sort(),ix={};wk.forEach((w,i)=>ix[w]=i);
   const tot=wk.map(()=>0);D.sales.forEach(r=>{if(ids.has(r.SKU_ID))tot[ix[r.Week]]+=+r.Units_Sold||0});
   const n=tot.length;if(n<4)return{svg:'',delta:0};
   const W=600,H=230,L=48,Rt=14,T=16,Bm=26,mn=Math.min(...tot)*.85,mx=Math.max(...tot)*1.06,x=i=>L+i/(n-1)*(W-L-Rt),y=v=>T+(1-(v-mn)/(mx-mn))*(H-T-Bm);
   const m=a=>a.reduce((s,v)=>s+v,0)/a.length,a12=m(tot.slice(-12)),a4=m(tot.slice(-4)),line=tot.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' L');
-  const svg=`<svg viewBox="0 0 ${W} ${H}"><defs>${GLOW}<linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#19e3ff" stop-opacity=".4"/><stop offset="1" stop-color="#19e3ff" stop-opacity="0"/></linearGradient></defs>
-  ${[0,1,2,3,4].map(k=>{const v=mn+(mx-mn)*k/4,yy=y(v);return`<line x1="${L}" x2="${W-Rt}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="#19e3ff" stroke-opacity=".1"/><text x="${L-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" class="svt">${Math.round(v).toLocaleString()}</text>`}).join('')}
-  <rect x="${x(n-4).toFixed(1)}" y="${T}" width="${(x(n-1)-x(n-4)).toFixed(1)}" height="${H-T-Bm}" fill="#19e3ff" fill-opacity=".08"/><text x="${((x(n-4)+x(n-1))/2).toFixed(1)}" y="${T+10}" text-anchor="middle" class="svt h">LAST 4 WEEKS</text>
+  const svg=`<svg viewBox="0 0 ${W} ${H}"><defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--acc);stop-opacity:.25"/><stop offset="1" style="stop-color:var(--acc);stop-opacity:0"/></linearGradient></defs>
+  ${[0,1,2,3,4].map(k=>{const v=mn+(mx-mn)*k/4,yy=y(v);return`<line x1="${L}" x2="${W-Rt}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)"/><text x="${L-6}" y="${(yy+4).toFixed(1)}" text-anchor="end" class="svt">${Math.round(v).toLocaleString()}</text>`}).join('')}
+  <rect x="${x(n-4).toFixed(1)}" y="${T}" width="${(x(n-1)-x(n-4)).toFixed(1)}" height="${H-T-Bm}" fill="var(--acc)" fill-opacity=".1"/><text x="${((x(n-4)+x(n-1))/2).toFixed(1)}" y="${T+11}" text-anchor="middle" class="svt" style="fill:var(--acc);font-weight:600">last 4 weeks</text>
   <path d="M${line} L${x(n-1)},${H-Bm} L${x(0)},${H-Bm} Z" fill="url(#ar)"/>
-  <line x1="${L}" x2="${W-Rt}" y1="${y(a12).toFixed(1)}" y2="${y(a12).toFixed(1)}" stroke="#ffb020" stroke-dasharray="5 4" stroke-opacity=".9"/><text x="${W-Rt}" y="${(y(a12)-5).toFixed(1)}" text-anchor="end" class="svt" style="fill:#ffb020">12-WEEK NORMAL ${Math.round(a12).toLocaleString()}</text>
-  <path d="M${line}" fill="none" stroke="#19e3ff" stroke-width="2.4" filter="url(#glow)"/>
-  <circle cx="${x(n-1).toFixed(1)}" cy="${y(tot[n-1]).toFixed(1)}" r="9" fill="#19e3ff" class="ping"/><circle cx="${x(n-1).toFixed(1)}" cy="${y(tot[n-1]).toFixed(1)}" r="4.5" fill="#fff"/>
+  <line x1="${L}" x2="${W-Rt}" y1="${y(a12).toFixed(1)}" y2="${y(a12).toFixed(1)}" stroke="#e5a50a" stroke-dasharray="5 4"/><text x="${W-Rt}" y="${(y(a12)-5).toFixed(1)}" text-anchor="end" class="svt" style="fill:#c48a00">usual level ${Math.round(a12).toLocaleString()}</text>
+  <path d="M${line}" fill="none" stroke="var(--acc)" stroke-width="2.6" stroke-linejoin="round"/><circle cx="${x(n-1).toFixed(1)}" cy="${y(tot[n-1]).toFixed(1)}" r="5" fill="var(--acc)"/>
   ${wk.map((w,i)=>i%Math.ceil(n/8)===0||i===n-1?`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" class="svt">${w.slice(-3)}</text>`:'').join('')}</svg>`;
-  return{svg,delta:(a4/a12-1)*100,last:tot[n-1]};
-}
-
-function gauge(rate,has){
-  const c=130,r=98,ang=-90+180*Math.min(rate,1),t=p=>-90+180*p;
-  return`<svg viewBox="0 0 260 160"><defs>${GLOW}</defs>
-  <g fill="none" stroke-width="16" filter="url(#glow)"><path d="${arcPath(c,c,r,t(0),t(.4))}" stroke="#29f2a0" stroke-opacity=".85"/><path d="${arcPath(c,c,r,t(.4),t(1))}" stroke="#ff4d6d" stroke-opacity=".85"/></g>
-  ${[0,.2,.4,.6,.8,1].map(p=>{const[a,b]=pol(c,c,r+16,t(p));return`<text x="${a.toFixed(1)}" y="${(b+3).toFixed(1)}" text-anchor="middle" class="svt">${Math.round(p*100)}</text>`}).join('')}
-  <g class="ndl" style="transform:rotate(${ang.toFixed(1)}deg)"><line x1="${c}" y1="${c}" x2="${c}" y2="${c-r+8}" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>
-  <circle cx="${c}" cy="${c}" r="9" fill="#050b14" stroke="#19e3ff" stroke-width="2"/>
-  <text x="${c}" y="${c+34}" text-anchor="middle" style="font:700 28px Consolas,monospace;fill:#fff">${has?Math.round(rate*100)+'%':'NO DATA'}</text></svg>`;
+  return{svg,delta:(a4/a12-1)*100};
 }
 
 function payback(){
-  const base=fin.ss+fin.wo,sv=base*fin.red/100,W=300,H=130,L=8,Bm=20,N=6,mx=Math.max(fin.bud*1.25,sv*N,1),bw=34,gap=(W-L*2-bw*N)/(N-1),yy=v=>H-Bm-v/mx*(H-Bm-12);
-  return`<svg viewBox="0 0 ${W} ${H}"><defs>${GLOW}</defs>
-  ${Array.from({length:N},(_,i)=>{const v=sv*(i+1),xx=L+i*(bw+gap),ok=v>=fin.bud;return`<rect x="${xx.toFixed(1)}" y="${yy(v).toFixed(1)}" width="${bw}" height="${(H-Bm-yy(v)).toFixed(1)}" fill="${ok?'#29f2a0':'#19e3ff'}" fill-opacity=".75" filter="url(#glow)"><title>After Q${i+1}: ${L_(v)}</title></rect><text x="${(xx+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" class="svt">Q${i+1}</text>`}).join('')}
-  <line x1="0" x2="${W}" y1="${yy(fin.bud).toFixed(1)}" y2="${yy(fin.bud).toFixed(1)}" stroke="#ffb020" stroke-dasharray="5 4"/><text x="2" y="${(yy(fin.bud)-4).toFixed(1)}" class="svt" style="fill:#ffb020">BUDGET ${L_(fin.bud)}</text></svg>`;
+  const base=fin.ss+fin.wo,sv=base*fin.red/100,W=300,H=130,Lm=4,Bm=20,N=6,mx=Math.max(fin.bud*1.25,sv*N,1),bw=34,gap=(W-Lm*2-bw*N)/(N-1),yy=v=>H-Bm-v/mx*(H-Bm-12);
+  return`<svg viewBox="0 0 ${W} ${H}" style="max-width:460px">${Array.from({length:N},(_,i)=>{const v=sv*(i+1),xx=Lm+i*(bw+gap),ok=v>=fin.bud;
+    return`<rect x="${xx.toFixed(1)}" y="${yy(v).toFixed(1)}" width="${bw}" height="${(H-Bm-yy(v)).toFixed(1)}" rx="3" fill="${ok?'#34b37a':'#8fb8a4'}"><title>Saved so far after quarter ${i+1}: ${L_(v)}</title></rect><text x="${(xx+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" class="svt">Q${i+1}</text>`}).join('')}
+  <line x1="0" x2="${W}" y1="${yy(fin.bud).toFixed(1)}" y2="${yy(fin.bud).toFixed(1)}" stroke="#e5a50a" stroke-dasharray="5 4"/><text x="2" y="${(yy(fin.bud)-4).toFixed(1)}" class="svt" style="fill:#c48a00">cost of the project ${L_(fin.bud)}</text></svg>`;
 }
-const L_=n=>'₹'+(Math.round(n*10)/10)+'L';
 
 function heat(rows,wk){
-  const sorted=rows.slice().sort(urg).slice(0,24),n=Math.max(...sorted.map(r=>r.weekly.length)),cw=30,ch=17,Lm=74,T=26,W=Lm+cw*n+8,H=T+ch*sorted.length+8;
-  const col=ratio=>ratio>=1?`rgba(255,${Math.round(190-Math.min(ratio-1,.5)*2*140)},70,${(.2+Math.min(ratio-1,.4)*2.1).toFixed(2)})`:`rgba(25,227,255,${(.05+Math.min(1-ratio,.4)*1.4).toFixed(2)})`;
+  const sorted=rows.slice().sort(urg).slice(0,24),n=Math.max(...sorted.map(r=>r.weekly.length)),cw=30,ch=17,Lm=76,T=26,W=Lm+cw*n+8,H=T+ch*sorted.length+8;
+  const col=ratio=>ratio>=1?`rgba(217,119,6,${(.12+Math.min(ratio-1,.4)*2).toFixed(2)})`:`rgba(59,130,196,${(.08+Math.min(1-ratio,.4)*1.4).toFixed(2)})`;
   return`<svg viewBox="0 0 ${W} ${H}">
   ${Array.from({length:n},(_,i)=>i%2===0||i===n-1?`<text x="${Lm+i*cw+cw/2}" y="${T-8}" text-anchor="middle" class="svt">${(wk[wk.length-n+i]||'').slice(-3)}</text>`:'').join('')}
   ${sorted.map((r,ri)=>{const mean=r.weekly.reduce((s,v)=>s+v,0)/r.weekly.length,off=n-r.weekly.length,yy=T+ri*ch;
-    return`<circle cx="8" cy="${yy+ch/2}" r="3.5" fill="${CC[r.call]}"/><text x="18" y="${yy+ch/2+3.5}" class="svt" style="fill:#d9f3ff">${r.id}</text>`+
-    r.weekly.map((v,i)=>`<rect x="${Lm+(i+off)*cw+1}" y="${yy+1}" width="${cw-2}" height="${ch-2}" rx="2" fill="${col(v/mean)}"><title>${r.id} ${(wk[wk.length-n+i+off]||'')}: ${v} units (${Math.round(v/mean*100)}% of its normal)</title></rect>`).join('')}).join('')}
-  <rect x="${Lm+(n-4)*cw}" y="${T-2}" width="${cw*4}" height="${ch*sorted.length+4}" fill="none" stroke="#19e3ff" stroke-width="1.4" stroke-dasharray="5 3"/></svg>`;
+    return`<circle cx="8" cy="${yy+ch/2}" r="4" fill="${CC[r.call]}"/><text x="18" y="${yy+ch/2+4}" class="svt" style="fill:var(--ink)">${r.id}</text>`+
+    r.weekly.map((v,i)=>`<rect x="${Lm+(i+off)*cw+1}" y="${yy+1}" width="${cw-2}" height="${ch-2}" rx="2" fill="${col(v/mean)}"><title>${r.id}: ${v} units (${Math.round(v/mean*100)}% of its usual)</title></rect>`).join('')}).join('')}
+  <rect x="${Lm+(n-4)*cw}" y="${T-2}" width="${cw*4}" height="${ch*sorted.length+4}" fill="none" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1.3" stroke-dasharray="5 3"/></svg>
+  <div class="lg" style="justify-content:flex-start"><span><i style="background:rgba(59,130,196,.55)"></i>selling less than usual</span><span><i style="background:rgba(217,119,6,.7)"></i>selling more than usual</span><span>dashed box = last 4 weeks</span></div>`;
 }
 
 function renderCommand(){
-  const rows=res.rows,N=rows.length,cnt={};rows.forEach(r=>cnt[r.call]=(cnt[r.call]||0)+1);
+  const rows=res.rows,N=rows.length;
   const chk=validate(D,R,new Date()),nb=chk.filter(c=>c.lv==='bad').length,nw=chk.filter(c=>c.lv==='warn').length;
   const dec=Object.values(decisions),ov=dec.filter(d=>d.status==='overridden').length,rate=dec.length?ov/dec.length:0;
-  const thr=rows.slice().sort(urg).filter(r=>r.call!=='OK').slice(0,7),buy=rows.reduce((a,r)=>a+(r.call.startsWith('Reorder')?r.qty:0),0);
+  const todo=rows.slice().sort(urg).filter(r=>r.call!=='OK').slice(0,7),buy=rows.reduce((a,r)=>a+(r.call.startsWith('Reorder')?r.qty:0),0);
   const toOrder=rows.filter(r=>r.call.startsWith('Reorder')),perish=toOrder.filter(r=>r.perish).length,judge=rows.filter(r=>r.flags.length||r.call==='Review').length;
-  const base=fin.ss+fin.wo,sv=base*fin.red/100,pb=sv>0?fin.bud/sv:0,pl=pulse();
-  const led=(c,t)=>`<span class="led"><i style="background:${c};box-shadow:0 0 8px ${c}"></i>${t}</span>`;
-  const wk=[...new Set(D.sales.map(r=>r.Week))].sort(),k=(v,l,extra='')=>`<div class="pn kpi" style="--i:${extra}"><b data-count="${v}">${v}</b><span>${l}</span></div>`;
+  const base=fin.ss+fin.wo,sv=base*fin.red/100,pb=sv>0?fin.bud/sv:0,pl=weekly(),wk=[...new Set(D.sales.map(r=>r.Week))].sort();
+  const adv=r=>r.call.startsWith('Reorder')?`Order ${r.qty} units`:r.call==='Pause order'?'Hold the next order':'Raghav decides';
+  const why=r=>r.call==='Pause order'?`${r.cover.toFixed(1)} weeks of stock, more than the ${r.hi} needed`:r.call==='Review'?esc(r.reason):`only ${r.cover.toFixed(1)} weeks of stock left, should be ${r.lo} to ${r.hi}`+(r.call==='Reorder 1.5x'||r.reason.includes('demand high')?', and demand is rising':'');
   $('#app').innerHTML=`<div class="hud">
-  <div class="pn s12 bar" style="--i:0"><span class="pt">System status</span>
-    ${led(nb?'#ff4d6d':nw?'#ffb020':'#29f2a0','Data link')}${led('#29f2a0','Rules engine')}${led(dec.length?'#29f2a0':'#ffb020','Human in loop')}${led('#6b7785','Zoho PO link: offline')}
-    <span style="flex:1"></span><span class="led">Stock as of ${esc(res.asof)}</span>${res.fest?led('#ffb020','Festival mode +'+Math.round((R.uplift-1)*100)+'%'):''}<span class="clk" id="clk">${new Date().toLocaleTimeString()}</span></div>
-  <div class="kpis s12">${k(toOrder.length,'SKUs to order',1)}${k(buy,'Units to order',2)}${k(perish,'Perishable at risk',3)}${k(judge,'Need Raghav\'s call',4)}</div>
-  <div class="pn s4" style="--i:3"><div class="pt">Network health</div><div class="pc">Every SKU gets one status. The big number is the share of SKUs that need nothing right now.</div>${reactor(rows)}</div>
-  <div class="pn s4" style="--i:4"><div class="pt">Stock radar</div><div class="pc">One dot per SKU. Inside the green ring is the target stock level. Toward the centre: running short. Toward the edge: too much.</div>${radar(rows)}</div>
-  <div class="pn s4" style="--i:5"><div class="pt">Threat board</div><div class="pc">The SKUs that need action first. Click one to jump to its decision.</div>
-    ${thr.length?thr.map(r=>`<button class="thr" data-act="goto" data-id="${esc(r.id)}"><i class="dot" style="background:${CC[r.call]};box-shadow:0 0 8px ${CC[r.call]}"></i><b>${esc(r.id)}</b><span class="nm">${esc(r.name.replace('Freshroots ',''))}</span><span class="cv" style="color:${CC[r.call]}">${r.cover.toFixed(1)}w</span><span class="sub">${r.call}${r.qty?' · '+r.qty+' units':''} · target ${r.lo}-${r.hi}w</span></button>`).join(''):'<div class="mute">All clear. Nothing needs action.</div>'}</div>
-  <div class="pn s5" style="--i:6"><div class="pt">Demand pulse</div><div class="pc">Total units sold each week. The dashed line is the 12-week normal. <b style="color:${pl.delta>=0?'#ffc14d':'#74b8ff'}">Last 4 weeks are ${pl.delta>=0?'+':''}${pl.delta.toFixed(0)}% vs normal.</b></div>${pl.svg}</div>
-  <div class="pn s3" style="--i:7"><div class="pt">Kill switch</div><div class="pc">How often Raghav overrides the tool. Past 40% (red) the rules are wrong and we redesign.</div>${gauge(rate,dec.length>0)}<div class="lg">${dec.length} decisions · ${ov} overridden</div></div>
-  <div class="pn s4" style="--i:8"><div class="pt">Money</div><div class="pc">Savings if losses drop ${fin.red}%, stacked per quarter. Bars turn green once they pay back the budget.</div>
-    <div class="stats"><div class="stat"><b data-count="${base}" data-pre="₹" data-suf="L">₹${base}L</b><span>Lost / qtr now</span></div><div class="stat"><b data-count="${sv.toFixed(1)}" data-dec="1" data-pre="₹" data-suf="L">₹${sv.toFixed(1)}L</b><span>Saved / qtr</span></div><div class="stat"><b data-count="${pb.toFixed(1)}" data-dec="1" data-suf=" qtr">${pb.toFixed(1)} qtr</b><span>Payback</span></div></div>${payback()}</div>
-  <div class="pn s12" style="--i:9"><div class="pt">Demand heat matrix</div><div class="pc">Each row is a SKU, each column a week. Amber/red = selling above its own normal, cyan = below. The dashed box is the last 4 weeks. A bright block there is the "demand shift" the old monthly process missed.</div>${heat(rows,wk)}</div></div>`;
-  animateCounts();
+  <div class="pn s12 chips2"><b>Today</b><span class="chip">Stock counted on ${esc(res.asof)}</span>${res.fest?`<span class="chip warn">Festival month: demand +${Math.round((R.uplift-1)*100)}%</span>`:''}
+    <button class="chip ${nb?'bad':nw?'warn':'good'}" data-v="priya">${nb?nb+' data problem'+(nb>1?'s':''):nw?nw+' data warning'+(nw>1?'s':''):'Data checks passed'}</button></div>
+  <div class="kpis s12"><div class="pn kpi"><b>${toOrder.length}</b><span>products to order</span></div><div class="pn kpi"><b>${buy.toLocaleString()}</b><span>units to order in total</span></div>
+    <div class="pn kpi"><b>${perish}</b><span>of them perishable (spoil fast)</span></div><div class="pn kpi"><b>${judge}</b><span>need Raghav's judgment</span></div></div>
+  <div class="pn s4"><div class="pt">How is our stock overall?</div><div class="pc">Each product gets one colour. Green means nothing to do.</div>${donut(rows)}</div>
+  <div class="pn s8"><div class="pt">Is each product's stock right?</div><div class="pc">One dot per product. Inside the green band is the right amount of stock. Left means running short, right means too much.</div>${stockBars(rows)}</div>
+  <div class="pn s6"><div class="pt">What needs doing first</div><div class="pc">Most urgent at the top. Click one to see it in Raghav's tab.</div>
+    ${todo.length?todo.map(r=>`<button class="it" data-act="goto" data-id="${esc(r.id)}"><i class="dot" style="background:${CC[r.call]}"></i><span><b>${adv(r)}: ${esc(r.name.replace('Freshroots ',''))}</b><span class="sub">${why(r)}</span></span></button>`).join(''):'<div class="pc">All clear. Nothing needs action.</div>'}</div>
+  <div class="pn s6"><div class="pt">Are sales going up or down?</div><div class="pc">Total units sold each week. <b style="color:${pl.delta>=0?'#c48a00':'var(--pausei)'}">The last 4 weeks are ${Math.abs(pl.delta).toFixed(0)}% ${pl.delta>=0?'above':'below'} the usual level.</b></div>${pl.svg}</div>
+  <div class="pn s4"><div class="pt">Is the tool giving good advice?</div><div class="pc">How often Raghav changes the tool's advice. If it goes above 40%, the rules need fixing.</div>
+    <div class="ob-track"><i style="width:${(rate*100).toFixed(0)}%;background:${rate>.4?'#e0525e':'#34b37a'}"></i><u></u></div><div class="ob-l"><span style="left:0;transform:none">0%</span><span style="left:40%">limit 40%</span><span style="left:100%;transform:translateX(-100%)">100%</span></div>
+    <div class="stat" style="margin-top:10px"><b>${dec.length?Math.round(rate*100)+'%':'No decisions yet'}</b><span>${dec.length?`${ov} of ${dec.length} decisions changed`:'Approve or override rows in Raghav\'s tab'}</span></div></div>
+  <div class="pn s8"><div class="pt">What is this worth?</div><div class="pc">If we cut losses by ${fin.red}%, this is what we save each quarter. Bars turn green once the savings have paid for the project.</div>
+    <div class="stats"><div class="stat"><b>${L_(base)}</b><span>lost per quarter today</span></div><div class="stat"><b>${L_(sv)}</b><span>saved per quarter</span></div><div class="stat"><b>${pb?pb.toFixed(1)+' quarters':'n/a'}</b><span>to pay for itself</span></div></div>${payback()}</div>
+  <div class="pn s12"><div class="pt">Which products are selling more or less than usual?</div><div class="pc">Each row is a product, each column a week. Orange means it sold more than its usual, blue means less. Look at the dashed box: a strong orange row there means demand just shifted, the kind of change a monthly review would miss.</div>${heat(rows,wk)}</div></div>`;
 }
-
-function animateCounts(){
-  const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  document.querySelectorAll('[data-count]').forEach(el=>{
-    const to=+el.dataset.count,dec=+(el.dataset.dec||0),pre=el.dataset.pre||'',suf=el.dataset.suf||'',fmt=v=>pre+(+v).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;
-    if(calm||isNaN(to)){el.textContent=fmt(to||0);return}
-    const t0=performance.now();(function f(t){const p=Math.min((t-t0)/900,1);el.textContent=fmt(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0);
-  });
-}
-setInterval(()=>{const c=document.getElementById('clk');if(c)c.textContent=new Date().toLocaleTimeString()},1000);
 function csvOut(name,header,lines){
   const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v,
   b=new Blob([[header,...lines].map(l=>l.map(q).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');
