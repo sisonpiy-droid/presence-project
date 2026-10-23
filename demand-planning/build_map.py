@@ -49,13 +49,14 @@ def components():
         "SAP": (1, 1, ["Sales, SKU master,", "stock, calendar CSVs"], "blue", False),
         "DC": (2, 1, ["Catches missing SKUs,", "stale stock, duplicates"], "blue", False),
         "Z": (3, 1, ["Open POs: not", "connected yet (gap)"], "grey", True),
+        "ZP": (3, 5, ["Draft PO in Zoho per", "approval (dry run until", "Zoho is connected)"], "orange", False),
         "RE": (4, 2, ["Raghav's 5 rules: cover,", "1.5x demand, festival", "+25%, perishable"], "yellow", False),
         "FL": (5, 2, ["Conflicts, sharp drops,", "new launches go", "to Raghav"], "yellow", False),
         "RG": (6, 3, ["Approves or overrides", "each row, notes why"], "yellow", False),
         "LOG": (7, 4, ["Decision log: call,", "qty, override, time", "(in this browser)"], "green", False),
         "DP": (8, 5, ["Weekly: override rate", "vs 40% limit, losses", "vs baseline"], "orange", False),
         "DK": (9, 5, ["Today's order list,", "table, CSV exports"], "orange", False),
-        "PR": (10, 5, ["Orders only from the", "approved CSV"], "orange", False),
+        "PR": (10, 5, ["Checks the draft PO", "in Zoho, then issues it"], "orange", False),
     }
     g = {k: (LW + c * CW + (CW - BW) / 2, HH + r * RH + (RH - BH) / 2) for k, (r, c, *_ ) in cells.items()}
     L = lambda k: (g[k][0], g[k][1] + BH / 2); R = lambda k: (g[k][0] + BW, g[k][1] + BH / 2)
@@ -79,7 +80,7 @@ def components():
     s += [arrow(elbow("P", "SAP", L("SAP")[0] - 12)), arrow([B("SAP"), T("DC")]), arrow([T("Z"), B("DC")], color="#9aa1ad"),
           arrow(elbow("DC", "RE", L("RE")[0] - 12)), arrow([B("RE"), T("FL")]), arrow(elbow("FL", "RG", L("RG")[0] - 12)),
           arrow(elbow("RG", "LOG", L("LOG")[0] - 12)), arrow(elbow("LOG", "DP", L("DP")[0] - 18)),
-          arrow(elbow("RG", "DK", L("DK")[0] - 6)), arrow([B("DK"), T("PR")])]
+          arrow(elbow("RG", "DK", L("DK")[0] - 6)), arrow(elbow("RG", "ZP", L("ZP")[0] - 12)), arrow([B("DK"), T("PR")])]
     for k, (_, _, lines, color, dash) in cells.items():
         s.append(box(*g[k], BW, BH, lines, color, dash))
     s.append("</svg>")
@@ -106,7 +107,7 @@ def workflow():
     items = {"A": (0, 0, ["Mon + Thu: export", "4 files from SAP"], "yellow"), "B": (1, 1, ["Drop files into the", "desk; checks run"], "blue"),
              "FX": (0, 2, ["Fix the export,", "export again"], "yellow"), "C": (1, 3, ["Rules give every SKU", "a call and a reason"], "blue"),
              "F": (1, 4, ["Flag conflicts, drops,", "new launches"], "blue"), "G": (2, 5, ["Approve or override", "each row, log why"], "yellow"),
-             "H": (3, 6, ["Place POs only from", "the approved list"], "orange"), "I": (4, 6, ["Weekly: override rate", "and losses vs baseline"], "orange"),
+             "H": (3, 6, ["Draft PO in Zoho:", "check it, then issue"], "orange"), "I": (4, 6, ["Weekly: override rate", "and losses vs baseline"], "orange"),
              "ST": (3, 7, ["Stop and redesign", "the rules"], "pink")}
     pos = {k: P(l, c) for k, (l, c, *_) in items.items()}
     D1, D2 = P(1, 2), P(4, 7)
@@ -140,7 +141,7 @@ h1{font-size:34px;margin:0;color:#1f3556}.sub{color:#6b7280;margin:4px 0 18px}h2
 <body><div class="w"><h1>Demand Planning · Components Map</h1>
 <div class="sub">A planner's week: trigger → collect → judge → decide → store → deliver</div>
 <div class="sc">__COMP__</div>
-<div class="note">No AI in the loop: fixed rules in code decide every call. Nothing places an order: Raghav approves, procurement orders from the approved list.</div>
+<div class="note">No AI in the loop: fixed rules in code decide every call. Raghav's approval only creates a draft PO: procurement checks it and issues it in Zoho.</div>
 <h2>Workflow</h2><div class="sub">One cycle, who does what, and where it stops or loops. Dashed grey = not connected yet (Zoho POs).</div>
 <div class="sc">__FLOW__</div></div></body></html>"""
 

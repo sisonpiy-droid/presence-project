@@ -182,6 +182,33 @@ function validate(D,R,today){
   return out;
 }
 
+// One Zoho purchase order per approved (or overridden) order. Always a draft: procurement issues it in Zoho.
+function buildPO(r,d,zm,k){
+  const m=zm[r.id]||{},w=[];
+  if(!m.zoho_item_id)w.push('No Zoho item mapped for '+r.id);
+  if(!m.zoho_vendor_id)w.push('No Zoho vendor mapped for '+r.id+' ('+r.dist+')');
+  return{decision_id:k,sku_id:r.id,distributor_id:r.dist,quantity:d.qty,status:'dry_run',warnings:w,
+    payload:{vendor_id:m.zoho_vendor_id||null,date:(d.at||'').slice(0,10),reference_number:k,
+      notes:'Reorder Desk. '+(d.status==='approved'?'Approved':'Overridden')+' by Raghav.'+(d.note?' '+d.note:''),
+      line_items:[{item_id:m.zoho_item_id||null,name:r.name,quantity:d.qty,...(m.rate!=null&&m.rate!==''?{rate:+m.rate}:{})}]}};
+}
+// What must change so purchase orders match decisions: create/refresh, delete dry runs, ask to void real drafts.
+function reconcilePOs(rows,decisions,zm,pos,asof){
+  const byId=Object.fromEntries(rows.map(r=>[r.id,r])),up=[],rm=[],vd=[],pre=asof+'|';
+  for(const k of Object.keys(decisions).filter(k=>k.startsWith(pre))){
+    const d=decisions[k],r=byId[k.slice(pre.length)];
+    if(!r||!(d.qty>0))continue;
+    const po=buildPO(r,d,zm,k),old=pos[k];
+    if(!old||old.quantity!==po.quantity||JSON.stringify(old.payload)!==JSON.stringify(po.payload)||JSON.stringify(old.warnings)!==JSON.stringify(po.warnings))up.push(po);
+  }
+  for(const k of Object.keys(pos).filter(k=>k.startsWith(pre))){
+    const d=decisions[k];
+    if(d&&d.qty>0)continue;
+    if(pos[k].status==='dry_run')rm.push(k);else if(pos[k].status==='draft_created')vd.push(k);
+  }
+  return{up,rm,vd};
+}
+
 function makeCloud(fx){
   const h=c=>({apikey:c.key,...(c.key.startsWith('sb_')?{}:{Authorization:'Bearer '+c.key}),'Content-Type':'application/json'});  // new sb_publishable_ keys are not JWTs: apikey header only
   const u=(c,path)=>c.url.replace(/\/+$/,'')+'/rest/v1/'+path;
@@ -206,6 +233,13 @@ function makeCloud(fx){
         inv:i.map(r=>({SKU_ID:r.sku_id,Location:r.location,Units_On_Hand:S(r.units_on_hand),As_Of_Date:r.as_of_date})),
         cal:k.map(r=>({Year:S(r.year),Month:S(r.month),Year_Month:r.year_month,Is_Festival_Month:r.is_festival_month?'TRUE':'FALSE'}))};
     },
+    async loadZmap(c){const rows=await(await ok(await fx(u(c,'zoho_map?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.sku_id,r]))},
+    async loadPOs(c){const rows=await(await ok(await fx(u(c,'purchase_orders?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.decision_id,r]))},
+    // upsert sends only these columns, so Zoho fields written by the live integration are never overwritten
+    async savePOs(c,list){await ok(await fx(u(c,'purchase_orders?on_conflict=decision_id'),{method:'POST',headers:merge(c),
+      body:JSON.stringify(list.map(p=>({decision_id:p.decision_id,sku_id:p.sku_id,distributor_id:p.distributor_id,quantity:p.quantity,status:p.status,payload:p.payload,warnings:p.warnings})))}))},
+    async deletePOs(c,ids){await ok(await fx(u(c,'purchase_orders?decision_id=in.'+encodeURIComponent('('+ids.map(i=>'"'+i+'"').join(',')+')')),{method:'DELETE',headers:h(c)}))},
+    async voidPOs(c,ids){await ok(await fx(u(c,'purchase_orders?decision_id=in.'+encodeURIComponent('('+ids.map(i=>'"'+i+'"').join(',')+')')),{method:'PATCH',headers:h(c),body:JSON.stringify({status:'void_requested'})}))},
     async saveSetting(c,k,v){await ok(await fx(u(c,'app_settings?on_conflict=key'),{method:'POST',headers:merge(c),body:JSON.stringify({key:k,value:v})}))},
     // writes only what differs from the last synced snapshot; returns the new snapshot
     async flush(c,cur,snap){
@@ -290,7 +324,7 @@ function renderRaghav(){
    ${now.length?`<b>Order ${now.length} SKU${now.length>1?'s':''} (${buy.toLocaleString()} units):</b><ul>${now.map(r=>`<li><b>${esc(r.id)}</b> ${esc(r.name)}: ${r.qty} units <span class="sn">(${esc(r.reason)})</span></li>`).join('')}</ul>`:'<b>Nothing needs ordering right now.</b>'}
    ${pz.length?`<div style="margin-top:8px"><b>Hold off on ${pz.length}:</b> ${pz.map(r=>esc(r.id)).join(', ')} <span class="sn">(enough stock already)</span></div>`:''}
    ${needs?`<div style="margin-top:8px;color:var(--revi)"><b>⚑ ${needs} need your judgment</b> before ordering.</div>`:''}
-   <div class="sn" style="margin-top:8px">Then go through the table below: Approve each row or Override it, and export the approved orders for procurement.</div></div>
+   <div class="sn" style="margin-top:8px">Then go through the table below: Approve each row or Override it. Every approved order becomes a draft purchase order for Zoho (a dry run until Zoho is connected).</div></div>
   <div class="tiles">${ORDER.filter(c=>cnt[c]).map(c=>`<div class="tile b-${CLS[c]}"><b>${cnt[c]}</b>${c}</div>`).join('')}
    <div class="tile card" style="margin:0"><b>${buy.toLocaleString()}</b>units recommended</div>
    <div class="tile card" style="margin:0"><b>${needs}</b>need Raghav's judgment</div></div>
@@ -315,7 +349,17 @@ function renderRaghav(){
     ${ed&&!d?`<div class="ed"><select id="c-${r.id}">${ORDER.filter(c=>c!=='Review').map(c=>`<option${c===r.call?' selected':''}>${c}</option>`).join('')}</select>
      <input type="number" id="q-${r.id}" value="${r.qty}" min="0"><input type="text" id="n-${r.id}" placeholder="Why? (optional)">
      <button class="p" data-act="saveOv" data-id="${r.id}">Save</button></div>`:''}</td></tr>`}).join('')}
-  </table></div></div>`;
+  </table></div></div>
+  ${poCard()}`;
+}
+function poCard(){
+  const list=poList(),warn=list.filter(p=>p.warnings&&p.warnings.length).length;
+  return`<div class="card"><div class="row"><h2 class="grow" style="margin:0">Draft purchase orders for Zoho</h2><button data-act="exportPOs"${list.length?'':' disabled'}>Download PO payloads (JSON)</button></div>
+  <div class="sn" style="margin:6px 0 10px">Every approval creates one draft purchase order for procurement to check and issue in Zoho. Zoho is not connected yet, so these are <b>dry runs</b>: the exact order that would be created, with nothing sent.</div>
+  ${zerr?`<div class="err">Could not read the Zoho mapping from Supabase: ${esc(zerr)}. Run supabase/po.sql in the SQL editor.</div>`:''}
+  ${warn?`<div class="verd" style="background:var(--x15);color:var(--x15i)">${warn} of ${list.length} orders cannot go to Zoho yet: fill in the Zoho item and vendor IDs in the <b>zoho_map</b> table in Supabase.</div>`:''}
+  ${list.length?`<table><tr><th>SKU<th>Vendor<th>Qty<th>Status<th>Notes</tr>${list.map(p=>`<tr><td><b>${esc(p.sku_id)}</b><div class="sn">${esc(p.payload.line_items[0].name)}</div></td><td>${esc(p.distributor_id)}</td><td>${p.quantity}</td>
+    <td><span class="badge b-x15">${p.status==='dry_run'?'Dry run: not sent':esc(p.status)}</span></td><td class="sn">${(p.warnings||[]).map(esc).join('<br>')||'Ready'}</td></tr>`).join('')}</table>`:'<div class="sn">No orders yet. Approve a row that has a quantity to create one.</div>'}</div>`;
 }
 
 document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value.toLowerCase();const p=e.target.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(p,p)}});
@@ -365,7 +409,7 @@ function renderDeepa(){
    <div class="card"><h2>Who does what</h2>
     <div class="kv"><span>Raghav (Planner)</span><span>Approves or overrides every row</span></div>
     <div class="kv"><span>Priya (Analyst)</span><span>Supplies the SAP exports, checks data</span></div>
-    <div class="kv"><span>Procurement</span><span>Orders only from the approved list</span></div>
+    <div class="kv"><span>Procurement</span><span>Checks the draft PO in Zoho, then issues it</span></div>
     <div class="kv"><span>Deepa (Sponsor)</span><span>Reviews this page weekly; owns the stop call</span></div></div>
    <div class="card"><h2>Stop and redesign if</h2><ol class="s"><li>Override rate is above 40% after 6 weeks of runs</li>
     <li>Losses are no better than baseline after one quarter</li><li>The SAP export cannot be made reliable</li></ol>
@@ -382,6 +426,12 @@ function renderPriya(){
    <li>Fix anything red above, then tell Raghav the run is ready.</li>
    <li>Download the recommendations file below for the record.</li></ol>
    <button class="p" data-act="exportRecs">Download full recommendations CSV</button></div>
+  <div class="card"><h2>Zoho link</h2>
+   ${(()=>{const n=res.rows.length,ok=res.rows.filter(r=>zmap[r.id]&&zmap[r.id].zoho_item_id&&zmap[r.id].zoho_vendor_id).length;return`
+   <div class="kv"><span>Mode</span><b>Dry run (Zoho not connected)</b></div>
+   <div class="kv"><span>SKUs mapped to a Zoho item and vendor</span><b>${ok} of ${n}</b></div>
+   <div class="kv"><span>Draft POs this run</span><b>${poList().length}</b></div>
+   <div class="sn" style="margin-top:8px">${ok<n?'Fill in zoho_item_id, zoho_vendor_id (and optionally rate) in the zoho_map table in Supabase. ':''}Going live needs the Edge Function and Zoho credentials in supabase/README.md.</div>`})()}</div>
   <div class="card"><h2>Columns the files must have</h2>
    ${Object.keys(NEED).map(k=>`<div class="kv"><span>${NAME[k]}</span><span class="sn">${NEED[k].join(', ')}</span></div>`).join('')}
    <div class="sn" style="margin-top:8px">The distributor file is not needed. Extra columns are ignored.</div></div></div>`;
@@ -463,6 +513,7 @@ function renderCommand(){
   const why=r=>r.call==='Pause order'?`${r.cover.toFixed(1)} weeks of stock, more than the ${r.hi} needed`:r.call==='Review'?esc(r.reason):`only ${r.cover.toFixed(1)} weeks of stock left, should be ${r.lo} to ${r.hi}`+(r.call==='Reorder 1.5x'||r.reason.includes('demand high')?', and demand is rising':'');
   $('#app').innerHTML=`<div class="hud">
   <div class="pn s12 chips2"><b>Today</b><span class="chip">Stock counted on ${esc(res.asof)}</span>${res.fest?`<span class="chip warn">Festival month: demand +${Math.round((R.uplift-1)*100)}%</span>`:''}
+    <span class="chip ${poList().length?'warn':''}">Zoho: dry run · ${poList().length} draft PO${poList().length===1?'':'s'}</span>
     <span class="chip ${cstat==='on'?'good':cstat==='err'?'bad':''}" title="${esc(cerr)}">Cloud sync: ${cstat==='on'?'connected':cstat==='err'?'error':cstat==='connecting'?'connecting':'off'}</span>
     <button class="chip ${nb?'bad':nw?'warn':'good'}" data-v="priya">${nb?nb+' data problem'+(nb>1?'s':''):nw?nw+' data warning'+(nw>1?'s':''):'Data checks passed'}</button></div>
   <div class="kpis s12"><div class="pn kpi"><b>${toOrder.length}</b><span>products to order</span></div><div class="pn kpi"><b>${buy.toLocaleString()}</b><span>units to order in total</span></div>
@@ -496,10 +547,24 @@ async function cloudSync(){
     const remote=await cloud.load(cfg);decisions={...decisions,...remote};
     snap=await cloud.flush(cfg,decisions,JSON.parse(JSON.stringify(remote)));   // pushes anything that only exists locally
     const f=await cloud.loadSetting(cfg,'fin');if(f)fin={...fin,...f};
+    try{zmap=await cloud.loadZmap(cfg);pos={...pos,...await cloud.loadPOs(cfg)};zerr=''}catch(e){zerr=e.message}
     store.set('rd-decisions',decisions);store.set('rd-fin',fin);cstat='on';cerr='';snapOk=true;
   }catch(e){cstat='err';cerr=e.message}
   paintCloud();if(res)render();
 }
+let zmap={},pos=store.get('rd-pos',{}),zerr='';
+// keep purchase orders in step with decisions: runs after every approve / override / undo
+async function poSync(){
+  if(!res)return;
+  const{up,rm,vd}=reconcilePOs(res.rows,decisions,zmap,pos,res.asof);
+  up.forEach(p=>pos[p.decision_id]={...pos[p.decision_id],...p});rm.forEach(k=>delete pos[k]);vd.forEach(k=>pos[k]={...pos[k],status:'void_requested'});
+  store.set('rd-pos',pos);
+  if(cfg&&cstat!=='connecting'&&snapOk){
+    try{if(up.length)await cloud.savePOs(cfg,up);if(rm.length)await cloud.deletePOs(cfg,rm);if(vd.length)await cloud.voidPOs(cfg,vd)}
+    catch(e){cstat='err';cerr='purchase orders: '+e.message;paintCloud()}
+  }
+}
+const poList=()=>Object.values(pos).filter(p=>res&&p.decision_id.startsWith(res.asof+'|')).sort((a,b)=>a.sku_id<b.sku_id?-1:1);
 async function cloudPush(force){
   if(!cfg||cstat==='connecting'||(!snapOk&&!force))return;
   try{snap=await cloud.flush(cfg,decisions,snap);cstat='on';cerr='';csaved=new Date().toLocaleTimeString()}catch(e){cstat='err';cerr=e.message}
@@ -537,10 +602,13 @@ document.addEventListener('click',e=>{
     res.rows.filter(x=>{const d=decisions[key(x)];return d&&d.qty>0}).map(x=>[x.id,x.name,x.dist,decisions[key(x)].qty]))}
   else if(act==='exportLog'){return csvOut(`decision-log-${res.asof}.csv`,['As_Of','SKU_ID','Recommended','Rec_Qty','Status','Final_Call','Final_Qty','Note'],
     res.rows.filter(x=>decisions[key(x)]).map(x=>{const d=decisions[key(x)];return[res.asof,x.id,d.recCall,d.recQty,d.status,d.call,d.qty,d.note||'']}))}
+  else if(act==='exportPOs'){
+    const b=new Blob([JSON.stringify(poList().map(p=>({...p.payload,_sku:p.sku_id,_status:p.status,_warnings:p.warnings})),null,2)],{type:'application/json'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download=`zoho-purchase-orders-${res.asof}.json`;a.click();URL.revokeObjectURL(a.href);return}
   else if(act==='exportRecs'){return csvOut(`recommendations-${res.asof}.csv`,['SKU_ID','SKU_Name','On_Hand','Avg_4wk','Avg_12wk','Weeks_Cover','Call','Reorder_Qty','Reason','Needs_Raghav'],
     res.rows.map(x=>[x.id,x.name,x.onHand,x.avg4.toFixed(1),x.avg12.toFixed(1),x.cover.toFixed(1),x.call,x.qty,x.reason,x.flags.join('; ')]))}
   else return;
-  store.set('rd-decisions',decisions);render();cloudPush();
+  poSync();store.set('rd-decisions',decisions);render();cloudPush();
 });
 loadSample();paintCloud();if(cfg)cloudSync();
 </script>

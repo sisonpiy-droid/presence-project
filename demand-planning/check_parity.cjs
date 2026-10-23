@@ -1,6 +1,6 @@
 // Fails if the JS rules disagree with the Python run (out/recommendations.csv).
 const fs = require('fs'), h = fs.readFileSync(__dirname + '/app.template.html', 'utf8');
-eval(h.match(/<script id="core">([\s\S]*?)<\/script>/)[1] + ';globalThis.X={parseCSV,compute,R0,validate,makeCloud}');
+eval(h.match(/<script id="core">([\s\S]*?)<\/script>/)[1] + ';globalThis.X={parseCSV,compute,R0,validate,makeCloud,buildPO,reconcilePOs}');
 const rd = n => X.parseCSV(fs.readFileSync(`${__dirname}/data/${n}.csv`, 'utf8'));
 const out = X.compute({sales: rd('weekly_sales'), master: rd('sku_master'), inv: rd('current_inventory'), cal: rd('calendar')}, X.R0, null);
 const py = X.parseCSV(fs.readFileSync(__dirname + '/out/recommendations.csv', 'utf8'));
@@ -54,6 +54,35 @@ for (const must of ['bad:SKUs in the master with no inventory', 'bad:1 rows with
   const loaded = await X.makeCloud(fxd).loadData(cfg);
   const a = JSON.stringify(X.compute(loaded, X.R0, null).rows.map(r => [r.id, r.call, r.qty, r.cover.toFixed(2)])), b = JSON.stringify(X.compute(D, X.R0, null).rows.map(r => [r.id, r.call, r.qty, r.cover.toFixed(2)]));
   if (a !== b) { bad++; console.log('database data gives different recommendations'); }
+  // Purchase orders: one draft per approved order, kept in step with decisions.
+  const rowsNow = X.compute(D, X.R0, null).rows, asof = '2026-10-19', byId = Object.fromEntries(rowsNow.map(r => [r.id, r]));
+  const k1 = asof + '|SKU001', k2 = asof + '|SKU002', k3 = '2026-10-12|SKU003';
+  const dA = {status: 'approved', call: 'Reorder now', qty: 750, recCall: 'Reorder now', recQty: 750, at: '2026-10-22T09:00:00Z'};
+  const zm = {SKU001: {zoho_item_id: 'I1', zoho_vendor_id: 'V1', rate: '12.5'}};
+  const po = X.buildPO(byId.SKU001, dA, zm, k1);
+  if (po.payload.vendor_id !== 'V1' || po.payload.line_items[0].item_id !== 'I1' || po.payload.line_items[0].quantity !== 750 || po.payload.line_items[0].rate !== 12.5
+      || po.payload.reference_number !== k1 || po.payload.date !== '2026-10-22' || po.status !== 'dry_run' || po.warnings.length) { bad++; console.log('buildPO wrong', po); }
+  if (X.buildPO(byId.SKU002, dA, {}, k2).warnings.length !== 2) { bad++; console.log('missing mapping must warn for item and vendor'); }
+  let rc = X.reconcilePOs(rowsNow, {[k1]: dA, [k2]: {...dA, qty: 0, call: 'OK'}, [k3]: dA}, zm, {}, asof);
+  if (rc.up.length !== 1 || rc.up[0].decision_id !== k1 || rc.rm.length || rc.vd.length) { bad++; console.log('only qty>0 decisions of this run make a PO', rc); }
+  const pos1 = {[k1]: rc.up[0]};
+  rc = X.reconcilePOs(rowsNow, {[k1]: dA}, zm, pos1, asof);
+  if (rc.up.length || rc.rm.length) { bad++; console.log('no change must do nothing'); }
+  rc = X.reconcilePOs(rowsNow, {[k1]: {...dA, qty: 400}}, zm, pos1, asof);
+  if (rc.up.length !== 1 || rc.up[0].quantity !== 400) { bad++; console.log('changed qty must refresh the PO'); }
+  rc = X.reconcilePOs(rowsNow, {}, zm, pos1, asof);
+  if (rc.rm.join() !== k1) { bad++; console.log('undo must delete a dry-run PO', rc); }
+  rc = X.reconcilePOs(rowsNow, {}, zm, {[k1]: {...pos1[k1], status: 'draft_created'}}, asof);
+  if (rc.vd.join() !== k1 || rc.rm.length) { bad++; console.log('undo must ask to void a real Zoho draft, not delete it', rc); }
+  const pc = []; const fxc = async (url, o) => { pc.push({url, ...o}); return {ok: true, status: 200, json: async () => [], text: async () => ''}; };
+  const cl = X.makeCloud(fxc);
+  await cl.savePOs(cfg, [po]);
+  const sent = JSON.parse(pc[0].body)[0];
+  if (!pc[0].url.endsWith('purchase_orders?on_conflict=decision_id') || sent.zoho_po_id !== undefined || sent.payload.vendor_id !== 'V1') { bad++; console.log('savePOs shape wrong', pc[0]); }
+  await cl.deletePOs(cfg, [k1, k2]);
+  if (pc[1].method !== 'DELETE' || !pc[1].url.endsWith('decision_id=in.' + encodeURIComponent('("' + k1 + '","' + k2 + '")'))) { bad++; console.log('deletePOs shape wrong', pc[1].url); }
+  await cl.voidPOs(cfg, [k1]);
+  if (pc[2].method !== 'PATCH' || JSON.parse(pc[2].body).status !== 'void_requested') { bad++; console.log('voidPOs shape wrong'); }
   console.log(bad ? 'FAIL' : 'supabase ok');
   process.exit(bad ? 1 : 0);
 })();
