@@ -85,7 +85,7 @@ details summary{cursor:pointer;font-weight:600}.g{display:grid;grid-template-col
  <div class="row" style="margin-top:10px"><span id="status" class="row"></span><span class="grow"></span><button id="sample">Use the sample data instead</button></div>
  <details style="margin-top:10px" id="cloudp"><summary>Cloud sync (Supabase) <span class="sn" id="cst"></span></summary>
   <div class="row" style="margin-top:8px"><input type="text" id="cu" placeholder="https://your-project.supabase.co" style="flex:2;min-width:240px"><input type="password" id="ck" placeholder="anon public key" style="flex:3;min-width:240px">
-   <button class="p" id="cgo">Connect</button><button id="coff">Disconnect</button></div>
+   <button class="p" id="cgo">Connect</button><button id="coff">Disconnect</button><button id="cload">Load data from Supabase</button></div>
   <div class="sn" style="margin-top:6px">Saves approvals, overrides and the loss inputs so everyone sees the same thing. Run supabase/schema.sql in your project's SQL editor first. Use the anon public key, never the service_role key.</div></details>
  <div class="err" id="err"></div>
  <div class="row" style="margin-top:10px">
@@ -191,6 +191,20 @@ function makeCloud(fx){
   return{
     async load(c){const rows=await(await ok(await fx(u(c,'decisions?select=*'),{headers:h(c)}))).json();return Object.fromEntries(rows.map(r=>[r.id,fromRow(r)]))},
     async loadSetting(c,k){const rows=await(await ok(await fx(u(c,'app_settings?select=value&key=eq.'+encodeURIComponent(k)),{headers:h(c)}))).json();return rows[0]?rows[0].value:null},
+    async all(c,t,order){
+      let out=[],from=0;
+      for(;;){const r=await ok(await fx(u(c,t+'?select=*&order='+order),{headers:{...h(c),'Range-Unit':'items',Range:`${from}-${from+999}`}}));
+        const rows=await r.json();out=out.concat(rows);if(rows.length<1000)return out;from+=1000}
+    },
+    // same shape as the CSV files, so compute() does not care where the data came from
+    async loadData(c){
+      const[m,s,i,k]=await Promise.all([this.all(c,'sku_master','sku_id'),this.all(c,'weekly_sales','sku_id,week'),this.all(c,'current_inventory','sku_id'),this.all(c,'calendar','year_month')]);
+      const S=v=>String(v);
+      return{master:m.map(r=>({SKU_ID:r.sku_id,SKU_Name:r.sku_name,Category:r.category,Perishability:r.perishability,Standard_Reorder_Qty:S(r.standard_reorder_qty),Unit_of_Measure:r.unit_of_measure,Distributor_ID:r.distributor_id})),
+        sales:s.map(r=>({SKU_ID:r.sku_id,Week:r.week,Units_Sold:S(r.units_sold)})),
+        inv:i.map(r=>({SKU_ID:r.sku_id,Location:r.location,Units_On_Hand:S(r.units_on_hand),As_Of_Date:r.as_of_date})),
+        cal:k.map(r=>({Year:S(r.year),Month:S(r.month),Year_Month:r.year_month,Is_Festival_Month:r.is_festival_month?'TRUE':'FALSE'}))};
+    },
     async saveSetting(c,k,v){await ok(await fx(u(c,'app_settings?on_conflict=key'),{method:'POST',headers:merge(c),body:JSON.stringify({key:k,value:v})}))},
     // writes only what differs from the last synced snapshot; returns the new snapshot
     async flush(c,cur,snap){
@@ -489,6 +503,10 @@ $('#cgo').onclick=()=>{
   const url=$('#cu').value.trim(),key=$('#ck').value.trim();
   if(!/^https:\/\/[^\s/]+/.test(url)||key.length<20){cstat='err';cerr='enter the https project URL and the anon key';return paintCloud()}
   cfg={url,key};store.set('rd-cloud',cfg);cloudSync();
+};
+$('#cload').onclick=async()=>{
+  if(!cfg||cstat!=='on'){$('#err').textContent='Connect to Supabase first.';return}
+  try{D=await cloud.loadData(cfg);$('#err').textContent='';status();go()}catch(e){$('#err').textContent='Could not load from Supabase: '+e.message}
 };
 $('#coff').onclick=()=>{cfg=null;snap={};cstat='off';try{localStorage.removeItem('rd-cloud')}catch{}$('#cu').value='';$('#ck').value='';paintCloud();if(res)render()};
 function csvOut(name,header,lines){

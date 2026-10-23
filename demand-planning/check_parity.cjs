@@ -40,6 +40,20 @@ for (const must of ['bad:SKUs in the master with no inventory', 'bad:1 rows with
   if (got[key].call !== 'Reorder now' || got[key].qty !== 750 || got[key].note !== undefined) { bad++; console.log('load mapping wrong', got); }
   let threw = false; try { await X.makeCloud(reply(false, [])).load(cfg); } catch (e) { threw = /401/.test(e.message); }
   if (!threw) { bad++; console.log('http errors must throw'); }
+  // loadData: rows from the database must produce the same recommendations as the CSVs.
+  const snake = {sku_master: D.master.map(r => ({sku_id: r.SKU_ID, sku_name: r.SKU_Name, category: r.Category, perishability: r.Perishability, standard_reorder_qty: +r.Standard_Reorder_Qty, unit_of_measure: r.Unit_of_Measure, distributor_id: r.Distributor_ID})),
+    weekly_sales: D.sales.map(r => ({sku_id: r.SKU_ID, week: r.Week, units_sold: +r.Units_Sold})),
+    current_inventory: D.inv.map(r => ({sku_id: r.SKU_ID, location: r.Location, units_on_hand: +r.Units_On_Hand, as_of_date: r.As_Of_Date})),
+    calendar: D.cal.map(r => ({year: +r.Year, month: +r.Month, year_month: r.Year_Month, is_festival_month: r.Is_Festival_Month === 'TRUE'}))};
+  const paged = []; // also proves paging: serve 1000-row pages for a table bigger than one page
+  const big = Array.from({length: 2300}, (_, i) => ({sku_id: 'S' + i}));
+  const fxp = async (url, o) => { paged.push(o.headers.Range); const [a, b] = o.headers.Range.split('-').map(Number); return {ok: true, status: 200, json: async () => big.slice(a, b + 1), text: async () => ''}; };
+  const allRows = await X.makeCloud(fxp).all(cfg, 'sku_master', 'sku_id');
+  if (allRows.length !== 2300 || paged.join() !== '0-999,1000-1999,2000-2999') { bad++; console.log('paging wrong', allRows.length, paged); }
+  const fxd = async (url) => ({ok: true, status: 200, json: async () => snake[url.match(/v1\/(\w+)\?/)[1]], text: async () => ''});
+  const loaded = await X.makeCloud(fxd).loadData(cfg);
+  const a = JSON.stringify(X.compute(loaded, X.R0, null).rows.map(r => [r.id, r.call, r.qty, r.cover.toFixed(2)])), b = JSON.stringify(X.compute(D, X.R0, null).rows.map(r => [r.id, r.call, r.qty, r.cover.toFixed(2)]));
+  if (a !== b) { bad++; console.log('database data gives different recommendations'); }
   console.log(bad ? 'FAIL' : 'supabase ok');
   process.exit(bad ? 1 : 0);
 })();
