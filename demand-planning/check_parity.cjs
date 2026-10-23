@@ -28,6 +28,9 @@ for (const must of ['bad:SKUs in the master with no inventory', 'bad:1 rows with
   const post = calls[0], body = JSON.parse(post.body);
   if (post.method !== 'POST' || post.url !== 'https://x.supabase.co/rest/v1/decisions?on_conflict=id' || post.headers.apikey !== cfg.key || !post.headers.Prefer.includes('merge-duplicates')
       || body[0].id !== key || body[0].sku_id !== 'SKU001' || body[0].as_of !== '2026-10-19' || body[0].rec_call !== 'Reorder now' || body[0].final_qty !== 0) { bad++; console.log('upsert shape wrong', post); }
+  if (post.headers.Authorization !== 'Bearer ' + cfg.key) { bad++; console.log('legacy anon key must also be sent as Bearer'); }
+  calls.length = 0; await X.makeCloud(reply(true, [])).flush({...cfg, key: 'sb_publishable_' + 'x'.repeat(20)}, {[key]: dec}, {});
+  if (calls[0].headers.Authorization || !calls[0].headers.apikey.startsWith('sb_publishable_')) { bad++; console.log('publishable key must be apikey only', calls[0].headers); }
   calls.length = 0; await c.flush(cfg, {[key]: dec}, snap);
   if (calls.length) { bad++; console.log('unchanged rows should not be re-sent'); }
   await c.flush(cfg, {}, snap);

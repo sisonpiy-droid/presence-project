@@ -182,7 +182,7 @@ function validate(D,R,today){
 }
 
 function makeCloud(fx){
-  const h=c=>({apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json'});
+  const h=c=>({apikey:c.key,...(c.key.startsWith('sb_')?{}:{Authorization:'Bearer '+c.key}),'Content-Type':'application/json'});  // new sb_publishable_ keys are not JWTs: apikey header only
   const u=(c,path)=>c.url.replace(/\/+$/,'')+'/rest/v1/'+path;
   const ok=async r=>{if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,160));return r};
   const merge=c=>({...h(c),Prefer:'resolution=merge-duplicates,return=minimal'});
