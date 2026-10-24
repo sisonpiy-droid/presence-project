@@ -27,7 +27,7 @@ Open the URL and tap **Try demo mode**. Three fake bikes ride a real road route 
 1. One person opens the link → **Create a trip** → search or tap the destination → **Create trip**.
 2. They enter their name and pick their bike, then tap **Invite** and send the link (or the 5-letter code) to the group chat.
 3. Everyone else opens the link, enters their name and picks a bike (max 2 people per bike).
-4. On **one phone per bike**, tap **📡 Share GPS** and allow location. Keep that screen on.
+4. On **one phone per bike**, tap **Yes, share this bike's location** (or the green Share button) and allow location. Keep that screen on.
 
 ## Using it on the road
 
