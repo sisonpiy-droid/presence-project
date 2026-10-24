@@ -216,6 +216,11 @@ function enterTrip() {
     const c = el("div", "card");
     c.innerHTML = `<div class="dot" style="background:var(--b${i})">${i}</div><div class="info"><b class="t"></b><span class="d"></span><span class="sub f"></span><span class="sub s"></span></div><button class="btn small nav">Navigate to Bike</button>`;
     c.querySelector(".nav").onclick = () => S.pos[i] && window.open(gmapsUrl(S.pos[i]), "_blank");
+    c.onclick = (e) => { // tap a card to look at that bike on the map
+      if (e.target.closest("button") || !S.pos[i]) return;
+      S.manual = true;
+      map.flyTo([S.pos[i].lat, S.pos[i].lng], 15);
+    };
     $("cards").append(c);
     cards[i] = c;
   }
@@ -248,7 +253,8 @@ function fit(withDest) {
 $("fitBtn").onclick = () => { S.manual = false; fit(true); };
 $("mapBtn").onclick = () => {
   const min = $("panel").classList.toggle("min");
-  $("mapBtn").textContent = min ? "📋 Details" : "🗺 Bigger map";
+  $("mapBtn").textContent = min ? "📋" : "🗺";
+  $("mapBtn").setAttribute("aria-label", min ? "Show details" : "Bigger map");
   setTimeout(() => map.invalidateSize(), 50);
 };
 $("navDest").onclick = () => window.open(gmapsUrl(S.dest), "_blank");
@@ -347,7 +353,7 @@ function startGps(auto) {
   pushTimer = setInterval(pushFix, 3000);
   requestWake();
   $("gpsBtn").classList.add("on");
-  $("gpsBtn").textContent = "📡 Sharing";
+  $("gpsBtn").textContent = `✅ Sharing Bike ${S.me.bike} · tap to stop`;
   toast("Sharing Bike " + S.me.bike + ". Keep this screen open on this phone.");
 }
 function stopGps() {
@@ -358,7 +364,7 @@ function stopGps() {
   wake?.release?.();
   fix = null;
   $("gpsBtn").classList.remove("on");
-  $("gpsBtn").textContent = "📡 Share GPS";
+  $("gpsBtn").textContent = "📡 Share this bike's location";
 }
 function pushFix() {
   if (!fix) return;

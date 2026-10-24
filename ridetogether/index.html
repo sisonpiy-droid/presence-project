@@ -58,16 +58,24 @@
       <span id="tripCode" class="code"></span>
       <span id="demoBadge" class="badge" hidden>DEMO</span>
       <span class="spacer"></span>
-      <button id="mapBtn" class="btn small">🗺 Bigger map</button>
-      <button id="shareBtn" class="btn small">Invite</button>
-      <button id="gpsBtn" class="btn small">📡 Share GPS</button>
+      <button id="shareBtn" class="btn small">➕ Invite</button>
     </header>
-    <div id="tripmap" class="map"></div>
+    <div class="mapwrap">
+      <div id="tripmap" class="map"></div>
+      <div class="fabs">
+        <button id="fitBtn" class="fab" aria-label="Show everyone on the map">🎯</button>
+        <button id="mapBtn" class="fab" aria-label="Bigger map">🗺</button>
+      </div>
+    </div>
     <div id="panel">
-      <button id="navDest" class="btn primary big">Navigate to Destination</button>
-      <div id="cards"></div>
-      <div id="between"></div>
-      <button id="fitBtn" class="btn link">Fit all on map</button>
+      <div id="actions">
+        <button id="gpsBtn" class="btn go big">📡 Share this bike's location</button>
+        <button id="navDest" class="btn primary big">Navigate to Destination</button>
+      </div>
+      <div id="list">
+        <div id="cards"></div>
+        <div id="between"></div>
+      </div>
     </div>
   </section>
 
