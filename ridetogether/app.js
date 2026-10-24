@@ -209,7 +209,9 @@ function enterTrip() {
   $("gpsBtn").hidden = $("shareBtn").hidden = S.demo;
   map = L.map("tripmap", { zoomControl: false }).setView([S.dest.lat, S.dest.lng], 12);
   tiles(map);
-  destMarker = L.marker([S.dest.lat, S.dest.lng], { icon: L.divIcon({ className: "flag", html: "🏁", iconSize: [30, 30], iconAnchor: [6, 28] }) }).addTo(map);
+  for (const ev of ["pointerdown", "wheel"]) map.getContainer().addEventListener(ev, () => (S.manual = true), { passive: true });
+  destMarker = L.marker([S.dest.lat, S.dest.lng], { icon: L.divIcon({ className: "flag", html: "🏁", iconSize: [44, 44], iconAnchor: [22, 22] }) })
+    .bindTooltip("Destination", { permanent: true, direction: "bottom", offset: [0, 20], className: "ptip" }).addTo(map);
   for (const i of [1, 2, 3]) {
     const c = el("div", "card");
     c.innerHTML = `<div class="dot" style="background:var(--b${i})">${i}</div><div class="info"><b class="t"></b><span class="d"></span><span class="sub f"></span><span class="sub s"></span></div><button class="btn small nav">Navigate to Bike</button>`;
@@ -231,15 +233,24 @@ function enterTrip() {
   setInterval(render, 5000); // refresh "last seen" labels
   setInterval(refreshRoutes, 12000);
   document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (sharing && requestWake(), render()));
+  const labels = () => map.getContainer().classList.toggle("far", map.getZoom() < 12); // names overlap when zoomed out
+  map.on("zoomend", labels);
   setTimeout(() => map.invalidateSize(), 100);
   render();
 }
 
-function fit() {
-  const pts = [[S.dest.lat, S.dest.lng], ...Object.values(S.pos).map((p) => [p.lat, p.lng])];
-  map.fitBounds(pts, { padding: [40, 40], maxZoom: 16 });
+function fit(withDest) {
+  S.lastFit = Date.now();
+  const bikes = Object.values(S.pos).map((p) => [p.lat, p.lng]);
+  const pts = withDest || !bikes.length ? [[S.dest.lat, S.dest.lng], ...bikes] : bikes;
+  map.fitBounds(pts, { padding: [50, 50], maxZoom: 15 });
 }
-$("fitBtn").onclick = fit;
+$("fitBtn").onclick = () => { S.manual = false; fit(true); };
+$("mapBtn").onclick = () => {
+  const min = $("panel").classList.toggle("min");
+  $("mapBtn").textContent = min ? "📋 Details" : "🗺 Bigger map";
+  setTimeout(() => map.invalidateSize(), 50);
+};
 $("navDest").onclick = () => window.open(gmapsUrl(S.dest), "_blank");
 $("shareBtn").onclick = $("wInvite").onclick = async () => {
   const url = `${location.origin}${location.pathname}?t=${S.code}`;
@@ -299,9 +310,11 @@ function render() {
     c.querySelector(".f").textContent = from ? `${sum(from)} from your bike` : "";
     c.querySelector(".nav").hidden = mine || !p;
     if (p) {
+      const first = S.riders.filter((r) => r.bike === i).map((r) => r.name.split(" ")[0]).join(" & ");
       if (!markers[i]) {
-        markers[i] = L.marker([p.lat, p.lng], { zIndexOffset: mine ? 1000 : 0, icon: L.divIcon({ className: "pin", html: `<div class="dot" style="background:var(--b${i})">${i}</div>`, iconSize: [30, 30] }) }).addTo(map);
-      } else markers[i].setLatLng([p.lat, p.lng]);
+        markers[i] = L.marker([p.lat, p.lng], { zIndexOffset: mine ? 1000 : 0, icon: L.divIcon({ className: "pin" + (mine ? " me" : ""), html: `<div class="dot" style="background:var(--b${i});--ring:var(--b${i})">${i}</div>`, iconSize: [40, 40] }) })
+          .bindTooltip(first, { permanent: true, direction: "bottom", offset: [0, 18], className: "ptip bike-tip" }).addTo(map);
+      } else markers[i].setLatLng([p.lat, p.lng]).setTooltipContent(first);
       markers[i].getElement()?.classList.toggle("stale", stale);
     }
   }
@@ -310,7 +323,8 @@ function render() {
   $("between").innerHTML = [[1, 2], [1, 3], [2, 3]]
     .filter(([a, b]) => S.eta[a]?.[b])
     .map(([a, b]) => `<span>Bike ${a} ↔ ${b}: ${sum(S.eta[a][b])}</span>`).join("");
-  if (!S.fitted && Object.keys(S.pos).length) { S.fitted = true; fit(); }
+  // keep everyone in view until the user pans/zooms themselves ("Fit all" turns it back on)
+  if (Object.keys(S.pos).length && !S.manual && now - (S.lastFit || 0) > 8000) fit();
   const key = Object.keys(S.pos).join();
   if (key !== S.key) { S.key = key; refreshRoutes(); }
 }
