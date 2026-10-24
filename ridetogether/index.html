@@ -60,6 +60,7 @@
       <span class="spacer"></span>
       <button id="shareBtn" class="btn small">➕ Invite</button>
     </header>
+    <div id="alert" hidden></div>
     <div class="mapwrap">
       <div id="tripmap" class="map"></div>
       <div class="fabs">
@@ -70,6 +71,7 @@
     <div id="panel">
       <div id="actions">
         <button id="gpsBtn" class="btn go big">📡 Share this bike's location</button>
+        <button id="darkBtn" class="btn big" hidden>🔋 Dark tracker screen (saves battery)</button>
         <button id="navDest" class="btn primary big">Navigate to Destination</button>
       </div>
       <div id="list">
@@ -78,6 +80,16 @@
       </div>
     </div>
   </section>
+
+  <!-- black screen for the phone that stays on the bike -->
+  <div id="tracker" hidden>
+    <div id="tBike"></div>
+    <div id="tState"></div>
+    <div id="tDest"></div>
+    <div id="tOthers"></div>
+    <div id="tAlert"></div>
+    <button id="tExit" class="btn">Show map</button>
+  </div>
 
   <!-- shown once, right after joining -->
   <div id="welcome" class="overlay" hidden>

@@ -31,10 +31,10 @@ Open the URL and tap **Try demo mode**. Three fake bikes ride a real road route 
 
 ## Using it on the road
 
-- Bike cards show each bike's distance and ETA to the destination; chips show distance/ETA between bikes.
-- **Navigate to Bike** / **Navigate to Destination** open Google Maps in two-wheeler mode with voice directions.
-- **Important:** a web page stops sharing GPS when its screen is off or another app is in front. So on each bike, the phone sharing GPS stays open on RideTogether, and the *other* rider's phone uses the Navigate buttons.
-- Marker fades and "Last seen …" shows if a bike hasn't updated for 45 s.
+- **Tracker phone** (one per bike, usually the pillion's): after joining, tap **Yes, share this bike's location**. The phone switches to a black tracker screen (saves battery on OLED) that shows the bike, "Sharing · sent 3s ago", the ETA to the destination, and the other bikes ("6.6 km · 9 min ahead of you"). Keep the screen on and the phone on a power bank. Tap **Show map** for the map.
+- **Navigation phone** (the rider's): use **Navigate to Destination** / **Navigate to Bike**, which open Google Maps in two-wheeler mode with voice directions. A web page stops sharing GPS when its screen is off or another app is in front, which is why the tracker and navigation phones are separate.
+- **Alerts:** a red banner (and a buzz on Android) appears when a bike is more than 3 km from yours or loses signal for 45 s. Change `GAP_ALERT_M` in `app.js` to tune it.
+- Reloaded or closed the tab? Open the link again: GPS sharing resumes by itself, and the home page has a **Resume trip** button.
 
 ## Good to know
 

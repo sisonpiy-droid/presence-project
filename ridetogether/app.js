@@ -1,7 +1,8 @@
-import { estimate, fmtDist, fmtTime, fmtAge, along, pathLength, gmapsUrl, newCode } from "./geo.js";
+import { haversine, estimate, fmtDist, fmtTime, fmtAge, along, pathLength, gmapsUrl, newCode } from "./geo.js";
 
 const OSRM = "https://router.project-osrm.org"; // free public demo server; car profile, fine for bikes
 const STALE_MS = 45000;
+const GAP_ALERT_M = 3000; // warn when a bike is this far from yours (straight line)
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || "", textContent: text || "" });
 const tiles = (map) => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
@@ -227,13 +228,15 @@ function enterTrip() {
   if (!S.demo) {
     real.watch(S.code);
     store("rt_last", S.code);
-    if (load("rt_share_" + S.code)) startGps(true); // resume sharing after a reload
+    if (load("rt_share_" + S.code)) { startGps(true); sharing && openTracker(); } // resume sharing after a reload
   }
   if (S.justJoined) {
     $("wBike").textContent = "Bike " + S.me.bike;
     $("welcome").hidden = false;
   }
-  $("wShare").onclick = () => { $("welcome").hidden = true; startGps(); };
+  $("wShare").onclick = () => { $("welcome").hidden = true; startGps(); sharing && openTracker(); };
+  $("darkBtn").onclick = openTracker;
+  $("tExit").onclick = closeTracker;
   $("wView").onclick = () => ($("welcome").hidden = true);
   setInterval(render, 5000); // refresh "last seen" labels
   setInterval(refreshRoutes, 12000);
@@ -313,7 +316,7 @@ function render() {
     const e = S.eta[i];
     c.querySelector(".d").textContent = e?.dest ? `${sum(e.dest)} to destination` : p ? "Calculating…" : "";
     const from = !mine && S.eta[S.me?.bike]?.[i];
-    c.querySelector(".f").textContent = from ? `${sum(from)} from your bike` : "";
+    c.querySelector(".f").textContent = from ? `${sum(from)} ${where(i) || "from your bike"}` : "";
     c.querySelector(".nav").hidden = mine || !p;
     if (p) {
       const first = S.riders.filter((r) => r.bike === i).map((r) => r.name.split(" ")[0]).join(" & ");
@@ -330,6 +333,7 @@ function render() {
     .filter(([a, b]) => S.eta[a]?.[b])
     .map(([a, b]) => `<span>Bike ${a} ↔ ${b}: ${sum(S.eta[a][b])}</span>`).join("");
   // keep everyone in view until the user pans/zooms themselves ("Fit all" turns it back on)
+  updateAlert();
   if (Object.keys(S.pos).length && !S.manual && now - (S.lastFit || 0) > 8000) fit();
   const key = Object.keys(S.pos).join();
   if (key !== S.key) { S.key = key; refreshRoutes(); }
@@ -353,6 +357,7 @@ function startGps(auto) {
   pushTimer = setInterval(pushFix, 3000);
   requestWake();
   $("gpsBtn").classList.add("on");
+  $("darkBtn").hidden = false;
   $("gpsBtn").textContent = `✅ Sharing Bike ${S.me.bike} · tap to stop`;
   toast("Sharing Bike " + S.me.bike + ". Keep this screen open on this phone.");
 }
@@ -364,6 +369,8 @@ function stopGps() {
   wake?.release?.();
   fix = null;
   $("gpsBtn").classList.remove("on");
+  $("darkBtn").hidden = true;
+  closeTracker();
   $("gpsBtn").textContent = "📡 Share this bike's location";
 }
 function pushFix() {
@@ -371,7 +378,60 @@ function pushFix() {
   const row = { trip: S.code, bike: S.me.bike, lat: fix.coords.latitude, lng: fix.coords.longitude, speed: fix.coords.speed, updated_at: new Date().toISOString() };
   ingestPos(row);
   render();
-  real.push(row).catch(() => {}); // next tick retries with a fresh fix
+  real.push(row).then(() => { S.lastPushOk = Date.now(); S.pushErr = false; }, () => (S.pushErr = true)); // next tick retries with a fresh fix
+}
+
+// ---------- group-split / lost-signal alert ----------
+function updateAlert() {
+  const now = Date.now(), mine = S.pos[S.me?.bike], msgs = [], keys = [];
+  for (const i of [1, 2, 3]) {
+    const p = S.pos[i];
+    if (i === S.me?.bike || !p) continue;
+    if (now - p.t > STALE_MS) { msgs.push(`Bike ${i} lost signal`); keys.push(i + "s"); }
+    else if (mine && haversine(mine, p) > GAP_ALERT_M) { msgs.push(`Bike ${i} is ${fmtDist(haversine(mine, p))} away`); keys.push(i + "f"); }
+  }
+  S.alert = msgs.join(" · ");
+  $("alert").hidden = !S.alert;
+  $("alert").textContent = "⚠ " + S.alert;
+  const key = keys.join();
+  if (key && key !== S.alertKey) navigator.vibrate?.([200, 100, 200]);
+  S.alertKey = key;
+}
+// "ahead of you" = less road left to the destination than your bike
+const where = (j) => {
+  const a = S.eta[S.me?.bike]?.dest?.m, b = S.eta[j]?.dest?.m;
+  if (a == null || b == null) return "";
+  return Math.abs(a - b) < 200 ? "beside you" : a > b ? "ahead of you" : "behind you";
+};
+
+// ---------- tracker mode: black glanceable screen for the phone that stays on the bike ----------
+let trackerTimer;
+function openTracker() {
+  $("tracker").hidden = false;
+  renderTracker();
+  clearInterval(trackerTimer);
+  trackerTimer = setInterval(renderTracker, 1000);
+}
+function closeTracker() {
+  $("tracker").hidden = true;
+  clearInterval(trackerTimer);
+}
+function renderTracker() {
+  const now = Date.now(), me = S.me.bike, st = $("tState");
+  if (!fix) { st.textContent = "Waiting for GPS fix…"; st.className = "warnc"; }
+  else if (S.pushErr) { st.textContent = "⚠ No internet, retrying"; st.className = "bad"; }
+  else { st.textContent = `📡 Sharing · sent ${Math.max(0, Math.round((now - (S.lastPushOk || now)) / 1000))}s ago`; st.className = "ok"; }
+  $("tBike").textContent = `Bike ${me}`;
+  $("tBike").style.color = `var(--b${me})`;
+  const e = S.eta[me]?.dest;
+  $("tDest").textContent = e ? `🏁 ${sum(e)}` : "🏁 …";
+  $("tAlert").textContent = S.alert ? "⚠ " + S.alert : "";
+  $("tOthers").replaceChildren(...[1, 2, 3].filter((i) => i !== me).map((i) => {
+    const p = S.pos[i], f = S.eta[me]?.[i], row = el("div", "trow"), d = el("span", "dot", i);
+    d.style.background = `var(--b${i})`;
+    row.append(d, !p ? "waiting…" : now - p.t > STALE_MS ? "signal lost" : f ? `${sum(f)} ${where(i)}` : "…");
+    return row;
+  }));
 }
 
 // ---------- boot ----------

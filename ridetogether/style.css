@@ -78,3 +78,12 @@ a.btn { display: block; text-align: center; text-decoration: none; }
   border-radius: 10px; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90vw; text-align: center; }
 #toast.show { opacity: 1; }
 .far .bike-tip { display: none; }
+#alert { background: #b91c1c; color: #fff; padding: 8px 12px; font-weight: 600; font-size: .9rem; }
+#tracker { position: fixed; inset: 0; z-index: 9500; background: #000; color: #fff; display: flex; flex-direction: column; justify-content: center;
+  gap: 18px; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); text-align: center; }
+#tBike { font-size: 3.2rem; font-weight: 800; }
+#tState { font-size: 1.1rem; font-weight: 600; } #tState.ok { color: #4ade80; } #tState.bad { color: #f87171; } #tState.warnc { color: #fbbf24; }
+#tDest { font-size: 2rem; font-weight: 700; }
+.trow { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 1.25rem; margin: 8px 0; }
+#tAlert { color: #f87171; font-weight: 700; font-size: 1.2rem; min-height: 1.5em; }
+#tExit { align-self: center; background: #222; color: #bbb; border-color: #333; }
