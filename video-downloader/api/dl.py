@@ -52,7 +52,7 @@ def extract(url):
         if v and not a:
             label += " (no sound)"
         out.append({
-            "label": label, "ext": ext, "size": size, "height": f.get("height") or 0, "audio": a, "video": v,
+            "label": label, "ext": ext, "direct": f["url"], "size": size, "height": f.get("height") or 0, "audio": a, "video": v,
             "token": sign({"u": f["url"], "h": f.get("http_headers") or {}, "n": "%s.%s" % (title, ext), "e": time.time() + 3600}),
         })
     out.sort(key=lambda x: (x["video"] and x["audio"], x["height"], x["size"] or 0), reverse=True)

@@ -26,6 +26,7 @@ f.onsubmit=async e=>{
       const a=document.createElement('a');a.href='/api/dl?get='+encodeURIComponent(x.token);
       a.textContent=x.label+' · '+x.ext.toUpperCase();
       const s=document.createElement('span');s.textContent=x.size?(x.size/1048576).toFixed(1)+' MB ↓':'↓';a.append(s);out.append(a);
+      const l=document.createElement('a');l.href=x.direct;l.target='_blank';l.rel='noreferrer';l.textContent='direct link (if the button times out)';l.style.cssText='font-size:12px;opacity:.6;display:block;border:0;padding:0 0 6px';out.append(l);
     }
   }catch(err){out.innerHTML='<p class=err></p>';out.firstChild.textContent=err.message}
 };
