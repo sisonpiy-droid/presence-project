@@ -1,0 +1,4 @@
+{
+  "framework": null,
+  "functions": { "api/dl.py": { "maxDuration": 60 } }
+}

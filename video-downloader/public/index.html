@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grab</title>
+<style>
+:root{color-scheme:light dark;font-family:system-ui,sans-serif}
+body{max-width:560px;margin:10vh auto;padding:0 16px}
+form{display:flex;gap:8px}input{flex:1;padding:12px;font-size:16px}button{padding:12px 18px;font-size:16px;cursor:pointer}
+#out a{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #8884;text-decoration:none;color:inherit}
+img{max-width:100%;border-radius:8px}.err{color:#d33}
+</style>
+<h1>Grab a video</h1>
+<form id=f><input id=u type=url required placeholder="Paste any video page or file link" autofocus><button>Go</button></form>
+<div id=out></div>
+<script>
+const out=document.getElementById('out');
+f.onsubmit=async e=>{
+  e.preventDefault();out.textContent='Looking…';
+  try{
+    const r=await fetch('/api/dl?url='+encodeURIComponent(u.value.trim())),d=await r.json();
+    if(!r.ok)throw Error(d.error);
+    if(!d.files.length)throw Error('No directly downloadable file found (stream-only video).');
+    out.innerHTML='';
+    if(d.thumbnail){const i=new Image();i.src=d.thumbnail;out.append(i)}
+    const h=document.createElement('h3');h.textContent=d.title||'Video';out.append(h);
+    for(const x of d.files){
+      const a=document.createElement('a');a.href='/api/dl?get='+encodeURIComponent(x.token);
+      a.textContent=x.label+' · '+x.ext.toUpperCase();
+      const s=document.createElement('span');s.textContent=x.size?(x.size/1048576).toFixed(1)+' MB ↓':'↓';a.append(s);out.append(a);
+    }
+  }catch(err){out.innerHTML='<p class=err></p>';out.firstChild.textContent=err.message}
+};
+</script>
