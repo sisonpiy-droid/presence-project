@@ -51,6 +51,10 @@ input { width: 100%; font: inherit; padding: 12px; border: 1px solid var(--line)
 .card .info b, .card .info span { display: block; }
 .card .sub { color: var(--muted); font-size: .8rem; }
 .dot { width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 700; font-size: .8rem; display: grid; place-items: center; flex: none; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+a.btn { display: block; text-align: center; text-decoration: none; }
+.card .d { font-weight: 600; font-size: 1rem; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; z-index: 9000; }
+.sheet { background: #fff; width: 100%; max-width: 520px; margin: 0 auto; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }
 .me-tag { font-size: .7rem; background: #e8eaee; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
 
 .pin { width: 30px; height: 30px; }

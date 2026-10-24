@@ -15,6 +15,7 @@
   <main id="home" class="screen">
     <h1>🏍️ RideTogether</h1>
     <p class="muted">Live map for a group ride. 3 bikes, 6 people, one destination.</p>
+    <a id="resume" class="btn primary big" hidden>Resume your trip</a>
     <button id="goCreate" class="btn primary big">Create a trip</button>
     <form id="joinForm" class="row">
       <input id="codeIn" placeholder="Trip code" maxlength="5" autocapitalize="characters" autocomplete="off" required>
@@ -62,12 +63,23 @@
     </header>
     <div id="tripmap" class="map"></div>
     <div id="panel">
-      <div id="between"></div>
-      <div id="cards"></div>
       <button id="navDest" class="btn primary big">Navigate to Destination</button>
+      <div id="cards"></div>
+      <div id="between"></div>
       <button id="fitBtn" class="btn link">Fit all on map</button>
     </div>
   </section>
+
+  <!-- shown once, right after joining -->
+  <div id="welcome" class="overlay" hidden>
+    <div class="sheet">
+      <h2>You're on <span id="wBike"></span> 🎉</h2>
+      <p class="muted">Is this the phone that stays on the bike?</p>
+      <button id="wShare" class="btn primary big">Yes, share this bike's location</button>
+      <button id="wInvite" class="btn big">Invite the others</button>
+      <button id="wView" class="btn link">No, I'll just watch</button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>

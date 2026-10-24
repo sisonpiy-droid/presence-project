@@ -7,6 +7,9 @@ const el = (tag, cls, text) => Object.assign(document.createElement(tag), { clas
 const tiles = (map) => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
 const show = (id) => document.querySelectorAll(".screen").forEach((s) => (s.hidden = s.id !== id));
 const home = () => (location.href = location.pathname);
+// localStorage can throw (private mode); the app must work without it
+const load = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const store = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
 let toastTimer;
 const toast = (msg) => {
   $("toast").textContent = msg;
@@ -102,6 +105,11 @@ if (!sb) {
   $("goCreate").disabled = true;
   $("joinForm").querySelector("button").disabled = true;
 }
+if (load("rt_last")) {
+  $("resume").hidden = false;
+  $("resume").href = "?t=" + load("rt_last");
+  $("resume").textContent = "Resume trip " + load("rt_last");
+}
 
 // ---------- create ----------
 let pick, pickMarker, dest;
@@ -145,6 +153,7 @@ const isFull = (i, name) => S.riders.filter((r) => r.bike === i).length >= 2 && 
 function renderBikes() {
   const name = $("nameIn").value.trim();
   if (rider(name)) sel = rider(name).bike; // same name = rejoining (e.g. new phone)
+  else if (!sel || isFull(sel, name)) sel = [1, 2, 3].find((i) => !isFull(i, name)) || 0; // pre-pick a free bike
   $("bikePick").replaceChildren(...[1, 2, 3].map((i) => {
     const names = S.riders.filter((r) => r.bike === i).map((r) => r.name);
     const b = el("button", "bikeopt" + (sel === i ? " sel" : ""));
@@ -164,7 +173,9 @@ $("joinBtn").onclick = async () => {
   try {
     if (!rider(name)) ingestRider(await real.join(S.code, name, sel));
     S.me = { name, bike: sel };
-    localStorage.setItem("rt_me_" + S.code, JSON.stringify(S.me));
+    store("rt_me_" + S.code, JSON.stringify(S.me));
+    store("rt_name", name);
+    S.justJoined = true;
     enterTrip();
   } catch (e) { toast("Couldn't join: " + e.message); $("joinBtn").disabled = false; }
 };
@@ -177,9 +188,10 @@ async function openTrip(code) {
   S.dest = d.dest;
   d.riders.forEach(ingestRider);
   d.pos.forEach(ingestPos);
-  try { S.me = JSON.parse(localStorage.getItem("rt_me_" + code)); } catch {}
+  try { S.me = JSON.parse(load("rt_me_" + code)); } catch {}
   if (S.me) return enterTrip();
   show("join");
+  $("nameIn").value = load("rt_name") || "";
   $("joinCode").textContent = code;
   $("joinDest").textContent = S.dest.name;
   renderBikes();
@@ -205,7 +217,17 @@ function enterTrip() {
     $("cards").append(c);
     cards[i] = c;
   }
-  if (!S.demo) real.watch(S.code);
+  if (!S.demo) {
+    real.watch(S.code);
+    store("rt_last", S.code);
+    if (load("rt_share_" + S.code)) startGps(true); // resume sharing after a reload
+  }
+  if (S.justJoined) {
+    $("wBike").textContent = "Bike " + S.me.bike;
+    $("welcome").hidden = false;
+  }
+  $("wShare").onclick = () => { $("welcome").hidden = true; startGps(); };
+  $("wView").onclick = () => ($("welcome").hidden = true);
   setInterval(render, 5000); // refresh "last seen" labels
   setInterval(refreshRoutes, 12000);
   document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (sharing && requestWake(), render()));
@@ -219,7 +241,7 @@ function fit() {
 }
 $("fitBtn").onclick = fit;
 $("navDest").onclick = () => window.open(gmapsUrl(S.dest), "_blank");
-$("shareBtn").onclick = async () => {
+$("shareBtn").onclick = $("wInvite").onclick = async () => {
   const url = `${location.origin}${location.pathname}?t=${S.code}`;
   try { await navigator.share({ title: "RideTogether", text: `Join our ride! Code ${S.code}`, url }); }
   catch { navigator.clipboard?.writeText(url).then(() => toast("Link copied"), () => toast(url)); }
@@ -283,6 +305,8 @@ function render() {
       markers[i].getElement()?.classList.toggle("stale", stale);
     }
   }
+  const mineEta = S.eta[S.me?.bike]?.dest;
+  $("navDest").textContent = "Navigate to Destination" + (mineEta ? ` · ${sum(mineEta)}` : "");
   $("between").innerHTML = [[1, 2], [1, 3], [2, 3]]
     .filter(([a, b]) => S.eta[a]?.[b])
     .map(([a, b]) => `<span>Bike ${a} ↔ ${b}: ${sum(S.eta[a][b])}</span>`).join("");
@@ -295,11 +319,12 @@ function render() {
 let sharing = false, watchId, pushTimer, fix, wake;
 const requestWake = async () => { try { wake = await navigator.wakeLock?.request("screen"); } catch {} };
 $("gpsBtn").onclick = () => (sharing ? stopGps() : startGps());
-function startGps() {
+function startGps(auto) {
   if (!navigator.geolocation) return toast("This browser has no GPS");
   const p = S.pos[S.me.bike];
-  if (p && Date.now() - p.t < 8000 && !confirm("Another phone seems to be sharing for this bike. Share from this one anyway?")) return;
+  if (!auto && p && Date.now() - p.t < 8000 && !confirm("Another phone seems to be sharing for this bike. Share from this one anyway?")) return;
   sharing = true;
+  store("rt_share_" + S.code, "1");
   watchId = navigator.geolocation.watchPosition(
     (pos) => (fix = pos),
     (e) => { if (e.code === 1) { toast("Location is blocked. Allow it in your browser settings."); stopGps(); } },
@@ -313,6 +338,7 @@ function startGps() {
 }
 function stopGps() {
   sharing = false;
+  store("rt_share_" + S.code, null);
   navigator.geolocation.clearWatch(watchId);
   clearInterval(pushTimer);
   wake?.release?.();
