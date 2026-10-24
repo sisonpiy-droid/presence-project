@@ -18,7 +18,7 @@ f.onsubmit=async e=>{
   try{
     const r=await fetch('/api/dl?url='+encodeURIComponent(u.value.trim())),d=await r.json();
     if(!r.ok)throw Error(d.error);
-    if(!d.files.length)throw Error('No directly downloadable file found (stream-only video).');
+    if(!d.files.length)throw Error('No video found on that page.');
     out.innerHTML='';
     if(d.thumbnail){const i=new Image();i.src=d.thumbnail;out.append(i)}
     const h=document.createElement('h3');h.textContent=d.title||'Video';out.append(h);
@@ -26,7 +26,7 @@ f.onsubmit=async e=>{
       const a=document.createElement('a');a.href='/api/dl?get='+encodeURIComponent(x.token);
       a.textContent=x.label+' · '+x.ext.toUpperCase();
       const s=document.createElement('span');s.textContent=x.size?(x.size/1048576).toFixed(1)+' MB ↓':'↓';a.append(s);out.append(a);
-      const l=document.createElement('a');l.href=x.direct;l.target='_blank';l.rel='noreferrer';l.textContent='direct link (if the button times out)';l.style.cssText='font-size:12px;opacity:.6;display:block;border:0;padding:0 0 6px';out.append(l);
+      if(!x.direct)continue;const l=document.createElement('a');l.href=x.direct;l.target='_blank';l.rel='noreferrer';l.textContent='direct link (if the button times out)';l.style.cssText='font-size:12px;opacity:.6;display:block;border:0;padding:0 0 6px';out.append(l);
     }
   }catch(err){out.innerHTML='<p class=err></p>';out.firstChild.textContent=err.message}
 };
