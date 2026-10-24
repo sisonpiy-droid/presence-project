@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>RideTogether</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast" role="status"></div>
+
+  <!-- Home -->
+  <main id="home" class="screen">
+    <h1>🏍️ RideTogether</h1>
+    <p class="muted">Live map for a group ride. 3 bikes, 6 people, one destination.</p>
+    <button id="goCreate" class="btn primary big">Create a trip</button>
+    <form id="joinForm" class="row">
+      <input id="codeIn" placeholder="Trip code" maxlength="5" autocapitalize="characters" autocomplete="off" required>
+      <button class="btn">Join</button>
+    </form>
+    <button id="goDemo" class="btn link">Try demo mode (no setup, 3 fake bikes)</button>
+    <p id="noCfg" class="warn" hidden>Supabase isn't configured yet, so only demo mode works. See README.md.</p>
+  </main>
+
+  <!-- Create -->
+  <main id="create" class="screen" hidden>
+    <button class="back" data-back>← Back</button>
+    <h2>Where are you going?</h2>
+    <form id="searchForm" class="row">
+      <input id="searchIn" placeholder="Search a place or address" required>
+      <button class="btn">Search</button>
+    </form>
+    <ul id="results"></ul>
+    <p class="muted small">…or tap the map to drop the pin.</p>
+    <div id="pickmap" class="map"></div>
+    <p id="destName" class="dest-name">No destination yet</p>
+    <button id="createBtn" class="btn primary big" disabled>Create trip</button>
+  </main>
+
+  <!-- Join -->
+  <main id="join" class="screen" hidden>
+    <button class="back" data-back>← Back</button>
+    <h2>Join trip <span id="joinCode" class="code"></span></h2>
+    <p class="muted">Going to <b id="joinDest"></b></p>
+    <label>Your name <input id="nameIn" maxlength="20" autocomplete="given-name" required></label>
+    <p class="label">Which bike are you on?</p>
+    <div id="bikePick"></div>
+    <button id="joinBtn" class="btn primary big" disabled>Join</button>
+  </main>
+
+  <!-- Trip -->
+  <section id="trip" class="screen" hidden>
+    <header>
+      <button class="back" data-back aria-label="Leave">←</button>
+      <span id="tripCode" class="code"></span>
+      <span id="demoBadge" class="badge" hidden>DEMO</span>
+      <span class="spacer"></span>
+      <button id="shareBtn" class="btn small">Invite</button>
+      <button id="gpsBtn" class="btn small">📡 Share GPS</button>
+    </header>
+    <div id="tripmap" class="map"></div>
+    <div id="panel">
+      <div id="between"></div>
+      <div id="cards"></div>
+      <button id="navDest" class="btn primary big">Navigate to Destination</button>
+      <button id="fitBtn" class="btn link">Fit all on map</button>
+    </div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
