@@ -9,11 +9,17 @@ export const db = createClient(
 const G = "https://generativelanguage.googleapis.com/v1beta/models";
 
 async function gemini(model: string, method: string, body: unknown) {
-  const r = await fetch(`${G}/${model}:${method}`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
-    body: JSON.stringify(body),
-  });
+  let r: Response;
+  for (let attempt = 0; ; attempt++) {
+    r = await fetch(`${G}/${model}:${method}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
+      body: JSON.stringify(body),
+    });
+    // Retry rate limits / overload twice with backoff; demos shouldn't die on one blip.
+    if (![429, 500, 503].includes(r.status) || attempt >= 2) break;
+    await new Promise((res) => setTimeout(res, 800 * 2 ** attempt));
+  }
   if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 300)}`);
   return r.json();
 }

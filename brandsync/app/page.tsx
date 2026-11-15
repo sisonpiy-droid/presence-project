@@ -11,6 +11,7 @@ const EXAMPLE = "Get our CHEAPEST deals now!!! Our miracle serum is clinically p
 const input = "w-full rounded-lg border border-neutral-300 bg-white p-3 text-sm focus:outline-2 focus:outline-indigo-500";
 const btn = "rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50";
 const SEV = { high: "bg-red-100 text-red-900", medium: "bg-amber-100 text-amber-900", low: "bg-sky-100 text-sky-900" };
+const BORDER = { high: "border-l-red-500", medium: "border-l-amber-500", low: "border-l-sky-500" };
 const STATUS = { pending: "bg-neutral-100 text-neutral-700", approved: "bg-green-100 text-green-900", rejected: "bg-red-100 text-red-900" };
 
 async function api(url: string, init: RequestInit = {}) {
@@ -118,6 +119,8 @@ export default function Dashboard() {
 
   const apply = (v: Violation) => setText((t) => t.replace(v.excerpt, v.suggested_edit));
   const applyAll = () => analysis && setText((t) => analysis.violations.reduce((s, v) => (v.excerpt === "IMAGE" ? s : s.replace(v.excerpt, v.suggested_edit)), t));
+  const issuesCaught = drafts.reduce((n, d) => n + (d.analysis?.violations?.length ?? 0), 0);
+  const avgScore = drafts.length ? Math.round(drafts.reduce((n, d) => n + (d.analysis?.score ?? 0), 0) / drafts.length) : "–";
   const edited = analysis !== null && text !== checkedText;
   const segments = useMemo(() => (analysis ? annotate(checkedText, analysis.violations) : []), [analysis, checkedText]);
   const scoreColor = !analysis ? "" : analysis.score >= 80 ? "text-green-600" : analysis.score >= 50 ? "text-amber-600" : "text-red-600";
@@ -126,9 +129,22 @@ export default function Dashboard() {
     <main className="grid min-h-screen md:grid-cols-2">
       {/* Left: submission */}
       <section className="space-y-8 border-b border-neutral-200 p-6 md:border-b-0 md:border-r md:p-10">
-        <header>
-          <h1 className="text-2xl font-semibold">BrandSync</h1>
-          <p className="text-sm text-neutral-500">Check every draft against your brand guide before it goes live.</p>
+        <header className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-lg font-bold text-white" aria-hidden>B</span>
+            <div>
+              <h1 className="text-2xl font-semibold leading-none">BrandSync</h1>
+              <p className="mt-1 text-sm text-neutral-500">Catch off-brand content before it goes live.</p>
+            </div>
+          </div>
+          <dl className="grid grid-cols-3 gap-3 text-center">
+            {[["Drafts checked", drafts.length], ["Issues caught", issuesCaught], ["Avg brand score", avgScore]].map(([k, v]) => (
+              <div key={k} className="rounded-lg border border-neutral-200 bg-white p-3">
+                <dd className="text-2xl font-semibold tabular-nums">{v}</dd>
+                <dt className="text-xs text-neutral-500">{k}</dt>
+              </div>
+            ))}
+          </dl>
         </header>
 
         <form onSubmit={check} className="space-y-3">
@@ -194,11 +210,27 @@ export default function Dashboard() {
             ))}
           </ul>
         ) : !analysis ? (
-          <p className="text-neutral-400">Results appear here after you run a check.</p>
+          busy ? (
+            <div className="space-y-3 animate-pulse" aria-live="polite">
+              <p className="text-sm text-neutral-500">Retrieving relevant rules and reviewing your draft…</p>
+              <div className="h-24 rounded-xl bg-neutral-100" /><div className="h-16 rounded-lg bg-neutral-100" /><div className="h-16 rounded-lg bg-neutral-100" />
+            </div>
+          ) : (
+            <div className="grid place-items-center gap-2 rounded-xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-500">
+              <p className="font-medium text-neutral-700">No review yet</p>
+              <p>Load the sample brand guide, click “Try an example”, then run a check.<br />Violations, the rule they break, and a suggested fix show up here.</p>
+            </div>
+          )
         ) : (
           <>
-            <div className="flex items-center gap-4 rounded-lg bg-neutral-50 p-4">
-              <div className={`text-4xl font-semibold tabular-nums ${scoreColor}`} aria-label={`Brand score ${analysis.score} out of 100`}>{analysis.score}</div>
+            <div className="flex items-center gap-4 rounded-xl bg-neutral-50 p-4">
+              <div className={`relative h-20 w-20 shrink-0 ${scoreColor}`} role="img" aria-label={`Brand score ${analysis.score} out of 100`}>
+                <svg viewBox="0 0 36 36" className="h-20 w-20 -rotate-90">
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeOpacity="0.15" strokeWidth="3" />
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray={`${analysis.score} 100`} className="transition-all duration-700" />
+                </svg>
+                <span className="absolute inset-0 grid place-items-center text-xl font-semibold tabular-nums">{analysis.score}</span>
+              </div>
               <p className="text-sm"><strong>{analysis.compliant ? "Compliant" : `${analysis.violations.length} issue(s) found`}</strong> — {analysis.summary}</p>
             </div>
 
@@ -207,7 +239,7 @@ export default function Dashboard() {
             </div>
 
             {analysis.violations.map((v, i) => (
-              <article key={i} className="space-y-2 rounded-lg border border-neutral-200 p-4 text-sm">
+              <article key={i} className={`space-y-2 rounded-lg border border-l-4 border-neutral-200 p-4 text-sm ${BORDER[v.severity]}`}>
                 <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                   <span className={`rounded-full px-2 py-0.5 ${SEV[v.severity]}`}>{v.severity}</span> Rule: {v.rule_title}
                 </p>
