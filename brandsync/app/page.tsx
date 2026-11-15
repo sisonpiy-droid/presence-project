@@ -4,9 +4,10 @@ import { SAMPLE_RULES } from "@/lib/sample-rules";
 
 type Violation = { rule_id: string; rule_title: string; rule_text: string; severity: "high" | "medium" | "low"; excerpt: string; issue: string; suggested_edit: string };
 type Analysis = { compliant: boolean; score: number; summary: string; violations: Violation[]; consulted: { id: string; title: string; similarity: number }[] };
-type Rule = { id: string; title: string; content: string };
+type Rule = { id: string; title: string; content: string; image_mime: string | null };
 type Draft = { id: string; body: string; status: "pending" | "approved" | "rejected"; analysis: Analysis; created_at: string };
 
+const EXAMPLE = "Get our CHEAPEST deals now!!! Our miracle serum is clinically proven to cure acne, unlike Brand X.";
 const input = "w-full rounded-lg border border-neutral-300 bg-white p-3 text-sm focus:outline-2 focus:outline-indigo-500";
 const btn = "rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50";
 const SEV = { high: "bg-red-100 text-red-900", medium: "bg-amber-100 text-amber-900", low: "bg-sky-100 text-sky-900" };
@@ -19,6 +20,14 @@ async function api(url: string, init: RequestInit = {}) {
   return j;
 }
 const json = (method: string, body: unknown): RequestInit => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+function postRule(r: { title: string; content: string }, image?: File | null) {
+  const fd = new FormData();
+  fd.set("title", r.title);
+  fd.set("content", r.content);
+  if (image) fd.set("image", image);
+  return api("/api/rules", { method: "POST", body: fd });
+}
 
 // Split text into plain / flagged segments for inline annotation.
 function annotate(text: string, vs: Violation[]) {
@@ -49,6 +58,7 @@ export default function Dashboard() {
   const [decision, setDecision] = useState("");
   const [ruleTitle, setRuleTitle] = useState("");
   const [ruleBody, setRuleBody] = useState("");
+  const [ruleImage, setRuleImage] = useState<File | null>(null);
   const [rules, setRules] = useState<Rule[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [tab, setTab] = useState<"review" | "queue">("review");
@@ -87,15 +97,15 @@ export default function Dashboard() {
   const addRule = (e: React.FormEvent) => {
     e.preventDefault();
     run(async () => {
-      await api("/api/rules", json("POST", { title: ruleTitle, content: ruleBody }));
-      setRuleTitle(""); setRuleBody("");
+      await postRule({ title: ruleTitle, content: ruleBody }, ruleImage);
+      setRuleTitle(""); setRuleBody(""); setRuleImage(null);
       await loadRules();
     });
   };
 
   const loadSamples = () =>
     run(async () => {
-      for (const r of SAMPLE_RULES) await api("/api/rules", json("POST", r));
+      for (const r of SAMPLE_RULES) await postRule(r);
       await loadRules();
     });
 
@@ -126,7 +136,10 @@ export default function Dashboard() {
           <textarea id="draft" className={input} rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste your caption, ad copy, email…" required />
           {preview && <img src={preview} alt="Attached draft" className="max-h-40 rounded-lg border border-neutral-200" />}
           <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] ?? null)} className="block text-sm" aria-label="Optional image" />
-          <button disabled={busy || !rules.length} className={`${btn} bg-indigo-600 text-white`}>{busy ? "Working…" : "Run compliance check"}</button>
+          <div className="flex gap-3">
+            <button disabled={busy || !rules.length} className={`${btn} bg-indigo-600 text-white`}>{busy ? "Working…" : "Run compliance check"}</button>
+            <button type="button" onClick={() => setText(EXAMPLE)} className={`${btn} border border-neutral-300`}>Try an example</button>
+          </div>
           {!rules.length && <p className="text-sm text-neutral-500">Add at least one brand rule first.</p>}
         </form>
 
@@ -135,7 +148,7 @@ export default function Dashboard() {
           <ul className="mt-3 space-y-2 text-sm">
             {rules.map((r) => (
               <li key={r.id} className="flex items-start justify-between gap-3 rounded border border-neutral-200 p-2">
-                <span><strong>{r.title}</strong> — {r.content}</span>
+                <span><strong>{r.title}</strong>{r.image_mime && <span className="ml-1 rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-900">+ image</span>} — {r.content}</span>
                 <button type="button" disabled={busy} onClick={() => delRule(r.id)} className="text-red-700 hover:underline" aria-label={`Delete rule ${r.title}`}>Delete</button>
               </li>
             ))}
@@ -143,6 +156,9 @@ export default function Dashboard() {
           <form onSubmit={addRule} className="mt-3 space-y-3">
             <input className={input} placeholder="Title (e.g. Tone of voice)" value={ruleTitle} onChange={(e) => setRuleTitle(e.target.value)} required />
             <textarea className={input} rows={3} placeholder="Rule text" value={ruleBody} onChange={(e) => setRuleBody(e.target.value)} required />
+            <label className="block text-xs text-neutral-500">Optional visual reference (logo, palette, do/don't — under 1MB)
+              <input type="file" accept="image/*" onChange={(e) => setRuleImage(e.target.files?.[0] ?? null)} className="mt-1 block text-sm" />
+            </label>
             <div className="flex gap-3">
               <button disabled={busy} className={`${btn} bg-neutral-900 text-white`}>Save rule</button>
               <button type="button" disabled={busy} onClick={loadSamples} className={`${btn} border border-neutral-300`}>Load sample brand guide</button>

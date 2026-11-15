@@ -6,6 +6,8 @@ create table brand_rules (
   title      text not null,
   content    text not null,
   embedding  vector(768) not null,   -- gemini-embedding-001 @ 768 dims
+  image_b64  text,                   -- optional visual reference (<=1MB) shown to the model with the rule
+  image_mime text,
   created_at timestamptz not null default now()
 );
 create index brand_rules_embedding_idx on brand_rules using hnsw (embedding vector_cosine_ops);
@@ -21,6 +23,8 @@ create table content_drafts (
   created_at  timestamptz not null default now(),
   reviewed_at timestamptz
 );
+
+-- Existing install? alter table brand_rules add column image_b64 text, add column image_mime text;
 
 -- Top-k most similar rules (cosine similarity).
 create function match_brand_rules(query_embedding vector(768), match_count int default 6)

@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     if (image instanceof File && image.size > 0) {
       if (!image.type.startsWith("image/") || image.size > MAX_IMAGE)
         return NextResponse.json({ error: "image must be an image under 4MB" }, { status: 400 });
+      parts.push({ text: "DRAFT IMAGE (the image under review):" });
       parts.push({ inlineData: { mimeType: image.type, data: Buffer.from(await image.arrayBuffer()).toString("base64") } });
       hasImage = true;
     }
@@ -55,7 +56,14 @@ export async function POST(req: Request) {
     const rules = (data ?? []) as Rule[];
     if (!rules.length) return NextResponse.json({ error: "No brand rules yet — add some first." }, { status: 400 });
 
-    // Generate: rules + draft (+ image) -> structured verdict.
+    // Multimodal retrieval: retrieved rules may carry a visual reference (logo, palette, do/don't).
+    const { data: refs } = await db.from("brand_rules").select("id,image_b64,image_mime").in("id", rules.map((r) => r.id)).not("image_mime", "is", null);
+    for (const ref of refs ?? []) {
+      parts.push({ text: `REFERENCE IMAGE for rule [id: ${ref.id}] (approved visual standard, not part of the draft):` });
+      parts.push({ inlineData: { mimeType: ref.image_mime, data: ref.image_b64 } });
+    }
+
+    // Generate: rules + draft (+ images) -> structured verdict.
     parts.push({
       text: `You are a strict but fair brand-compliance reviewer. Check the draft${hasImage ? " and the attached image" : ""} ONLY against the rules below. Do not invent rules and do not flag things no rule covers. Cite each violation by rule_id. Quote the offending excerpt exactly as written. Suggest the smallest edit that fixes it. If nothing is violated, return an empty violations array.
 
