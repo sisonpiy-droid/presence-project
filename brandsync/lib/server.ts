@@ -1,9 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Supabase's gateway occasionally answers 401 "JWT issued at future" (clock skew between its nodes). It clears on retry.
+const retryFetch: typeof fetch = async (input, init) => {
+  for (let i = 0; ; i++) {
+    const r = await fetch(input, init);
+    if (r.status !== 401 || i >= 3 || !(await r.clone().text()).includes("JWT")) return r;
+    await new Promise((res) => setTimeout(res, 700));
+  }
+};
+
 export const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } },
+  { auth: { persistSession: false }, global: { fetch: retryFetch } },
 );
 
 const G = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -36,7 +45,8 @@ export async function embed(text: string, kind: "RETRIEVAL_DOCUMENT" | "RETRIEVA
 export async function generateJson(parts: unknown[], schema: unknown) {
   const j = await gemini(process.env.GEMINI_MODEL ?? "gemini-3.6-flash", "generateContent", {
     contents: [{ role: "user", parts }],
-    generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.2 },
+    generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.2, thinkingConfig: { thinkingLevel: "low" } }, // low thinking: ~4x faster, plenty for rule-matching
+    
   });
   return JSON.parse(j.candidates[0].content.parts[0].text);
 }
